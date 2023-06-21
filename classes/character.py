@@ -189,11 +189,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         ocs = [Character(**oc) async for oc in db.find(key)]
         ocs.sort(key=lambda x: x.name)
 
-        if not value:
-            items = ocs
-        else:
-            items = [x for x in ocs if value.lower() in x.display_name.lower()]
-
+        items = [x for x in ocs if value.lower() in x.display_name.lower()] if value else ocs
         return [Choice(name=item.display_name, value=str(item._id)) for item in items[:25]]
 
     async def convert(self, ctx: commands.Context[Client], argument: str):

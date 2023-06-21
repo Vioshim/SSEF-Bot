@@ -178,7 +178,28 @@ class Submission(commands.Cog):
                 modal.desc.default = description
             await ctx.interaction.response.send_modal(modal)
         else:
-            await ctx.reply("Name and Description cannot be empty.", ephemeral=True)
+            await ctx.reply("You must provide a name and description.", ephemeral=True)
+
+    @commands.command()
+    async def addchar(
+        self,
+        ctx: commands.Context[Client],
+        name: remove_markdown = "",
+        *,
+        description: escape_mentions = "",
+    ):
+        """Create a new character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        name : str
+            Name of the character
+        description : str
+            Description of the character
+        """
+        await ctx.invoke(self.add, name=name, description=description)
 
     @char.command(aliases=["get", "view"])
     async def read(
@@ -279,6 +300,19 @@ class Submission(commands.Cog):
         await self.db.delete_one({"_id": oc._id, "user_id": ctx.author.id})
         await ctx.reply(embed=oc.embed)
 
+    @commands.command()
+    async def delchar(self, ctx: commands.Context[Client], *, oc: CharacterArg):
+        """Delete a character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        oc: Character
+            Character to delete
+        """
+        await ctx.invoke(self.delete, oc=oc)
+
     @char.app_command.command()
     async def update(self, itx: discord.Interaction[Client], *, oc: CharacterArg):
         """Update a character
@@ -333,6 +367,24 @@ class Submission(commands.Cog):
             upsert=True,
         )
         await ctx.reply(f"Changed {oc.name!r} to {name!r}", ephemeral=True)
+
+    @commands.command(aliases=["editname", "rename"])
+    async def renamechar(
+        self,
+        ctx: commands.Context[Client],
+        oc: CharacterArg,
+        name: str,
+    ):
+        """Rename a character
+
+        Parameters
+        ----------
+        oc : CharacterArg
+            Character to rename
+        name : str
+            New name
+        """
+        await ctx.invoke(self.name, oc=oc, name=name)
 
     @edit.command(with_app_command=False, aliases=["desc"])
     async def description(
