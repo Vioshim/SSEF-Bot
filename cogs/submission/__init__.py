@@ -198,8 +198,9 @@ class Submission(commands.Cog):
     async def search(
         self,
         ctx: commands.Context[Client],
-        query: remove_markdown,
+        query: remove_markdown = "",
         author: Optional[discord.Member | discord.User] = None,
+        *,
         oc: Optional[CharacterArg] = None,
     ):
         """Search for a character
