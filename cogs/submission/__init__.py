@@ -44,8 +44,9 @@ class Submission(commands.Cog):
         aliases=["oc", "character"],
         invoke_without_command=True,
         case_insensitive=True,
+        fallback="lookup",
     )
-    async def char(self, ctx: commands.Context[Client]):
+    async def char(self, ctx: commands.Context[Client], *, text: str):
         """Character commands group
 
         Parameters
@@ -53,19 +54,52 @@ class Submission(commands.Cog):
         ctx : commands.Context
             Context of the command
         """
-        items = [
-            "add <name> <description>",
-            "read <name>",
-            "delete <name>",
-            "edit name <name> <new name>",
-            "edit desc <name> <description>",
-            "list <user: optional>",
-        ]
-        description = "\n".join(
-            f"{idx}. `{ctx.prefix}{ctx.invoked_with} {item}`" for idx, item in enumerate(items, start=1)
-        )
-        content = "# Character Commands\n\n" + description
-        await ctx.reply(content=content, ephemeral=True)
+        ocs = []
+
+        try:
+            oc = await Character.converter(ctx, text)
+        except commands.BadArgument:
+            oc = None
+
+        if oc is None:
+            ocs = [Character(**oc) async for oc in self.db.find({})]
+
+            if result := process.extractOne(
+                text,
+                ocs,
+                processor=lambda oc: oc.name if isinstance(oc, Character) else oc,
+                score_cutoff=60,
+            ):
+                oc = result[0]
+            elif len(ocs := [oc for oc in ocs if text in oc]) == 1:
+                oc = ocs[0]
+
+        if isinstance(oc, Character):
+            for index, text in enumerate(self.wrapper.wrap(oc.description)):
+                await ctx.reply(
+                    content=text,
+                    ephemeral=True,
+                    allowed_mentions=discord.AllowedMentions(
+                        replied_user=index == 0,
+                    ),
+                )
+        elif ocs:
+            embed = discord.Embed(title="Characters", color=ctx.author.color)
+
+            ocs.sort(key=lambda x: (x.user_id, x.name))
+            guild = ctx.guild or ctx.author.mutual_guilds[0]
+
+            for k, v in groupby(ocs, lambda x: x.user_id):
+                m = guild.get_member(k)
+                if m and len(embed.fields) < 25:
+                    embed.add_field(name=str(m), value="\n".join(f"* {oc.display_name}" for oc in v)[:1024])
+                    
+            await ctx.reply(embed=embed, ephemeral=True)
+        else:
+            await ctx.reply(
+                content="No characters found.",
+                ephemeral=True,
+            )
 
     @char.app_command.command()
     async def create(self, itx: discord.Interaction[Client]):
@@ -136,8 +170,8 @@ class Submission(commands.Cog):
     async def read(
         self,
         ctx: commands.Context[Client],
-        author: discord.Member | discord.User = commands.Author,
-        oc: CharacterArg = None,
+        *,
+        oc: CharacterArg,
     ):
         """Get a character
 
