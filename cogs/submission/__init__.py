@@ -137,7 +137,6 @@ class Submission(commands.Cog):
         self,
         ctx: commands.Context[Client],
         author: discord.Member | discord.User = commands.Author,
-        *,
         oc: CharacterArg = None,
     ):
         """Get a character
