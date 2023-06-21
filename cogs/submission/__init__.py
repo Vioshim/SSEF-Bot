@@ -16,10 +16,13 @@
 from textwrap import TextWrapper
 
 import discord
+from rapidfuzz import process
 from discord.ext import commands
 from discord.utils import escape_mentions, remove_markdown
+from itertools import groupby
 
 from classes.character import Character, CharacterArg
+from typing import Optional
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
 
@@ -130,24 +133,84 @@ class Submission(commands.Cog):
             await ctx.reply("Name and Description cannot be empty.", ephemeral=True)
 
     @char.command(aliases=["get", "view"])
-    async def read(self, ctx: commands.Context[Client], *, oc: CharacterArg):
+    async def read(
+        self,
+        ctx: commands.Context[Client],
+        author: discord.Member | discord.User = commands.Author,
+        *,
+        oc: CharacterArg = None,
+    ):
         """Get a character
 
         Parameters
         ----------
         ctx : commands.Context
             Context of the command
+        author : discord.Member | discord.User
+            Author of the character
         oc : str
             Character
         """
-        for index, text in enumerate(self.wrapper.wrap(oc.description)):
-            await ctx.reply(
-                content=text,
-                ephemeral=True,
-                allowed_mentions=discord.AllowedMentions(
-                    replied_user=index == 0,
-                ),
+        if isinstance(oc, Character):
+            for index, text in enumerate(self.wrapper.wrap(oc.description)):
+                await ctx.reply(
+                    content=text,
+                    ephemeral=True,
+                    allowed_mentions=discord.AllowedMentions(
+                        replied_user=index == 0,
+                    ),
+                )
+
+    @char.command()
+    async def search(
+        self,
+        ctx: commands.Context[Client],
+        query: remove_markdown,
+        author: Optional[discord.Member | discord.User] = None,
+    ):
+        """Search for a character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        query : str
+            Query to search
+        author : Optional[discord.Member | discord.User]
+            Author of the character
+        """
+        embed = discord.Embed(title="Characters")
+
+        if author is None:
+            key = {}
+            embed.color = ctx.author.color
+        else:
+            key = {"user_id": author.id}
+            embed.color = author.color
+            embed.set_author(name=author.display_name, icon_url=author.display_avatar)
+
+        ocs = [Character(**oc) async for oc in self.db.find(key)]
+
+        items = [
+            x
+            for x, _, _ in process.extract(
+                query,
+                ocs,
+                processor=lambda x: x.name if isinstance(x, Character) else x,
+                score_cutoff=80,
             )
+        ]
+
+        items.extend(x for x in ocs if x not in items and query in x)
+        items.sort(key=lambda x: (x.user_id, x.name))
+        guild = ctx.guild or ctx.author.mutual_guilds[0]
+
+        for k, v in groupby(items, lambda x: x.user_id):
+            m = guild.get_member(k)
+            if m and len(embed.fields) < 25:
+                embed.add_field(name=str(m), value="\n".join(f"* {oc.display_name}" for oc in v)[:1024])
+
+        await ctx.reply(embed=embed, ephemeral=True)
 
     @char.command(aliases=["del", "remove"])
     async def delete(self, ctx: commands.Context[Client], *, oc: CharacterArg):

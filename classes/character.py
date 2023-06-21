@@ -44,6 +44,10 @@ class Character:
     def __hash__(self) -> int:
         return hash(self._id)
 
+    def __contains__(self, item: str) -> bool:
+        item = remove_markdown(item.lower())
+        return item in self.name.lower() or item in self.description.lower()
+
     def __eq__(self, other: Character) -> bool:
         return self._id == other._id
 
@@ -131,7 +135,10 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
     async def transform(self, interaction: Interaction[Client], argument: str) -> Character:
         db = interaction.client.db("Characters")
 
-        key = {"user_id": interaction.user.id}
+        if author := interaction.namespace.author:
+            key = {"user_id": author.id}
+        else:
+            key = {"user_id": interaction.user.id}
 
         try:
             key["_id"] = ObjectId(argument)
@@ -141,7 +148,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         if result := await db.find_one(key):
             return Character(**result)
 
-        ocs = [Character(**oc) async for oc in db.find({"user_id": interaction.user.id})]
+        ocs = [Character(**oc) async for oc in db.find({"user_id": key["user_id"]})]
 
         if not ocs:
             raise commands.BadArgument("You have no characters")
@@ -164,22 +171,28 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
     ) -> list[Choice[str]]:
         db = interaction.client.db("Characters")
 
-        return [
-            Choice(
-                name=o.display_name,
-                value=str(o._id),
-            )
-            async for oc in db.find(
-                {
-                    "user_id": interaction.user.id,
-                    "name": {
-                        "$regex": remove_markdown(value) or ".+",
-                        "$options": "i",
-                    },
-                }
-            )
-            if (o := Character(**oc))
-        ]
+        if author := interaction.namespace.author:
+            key = {"user_id": author.id}
+        else:
+            key = {"user_id": interaction.user.id}
+
+        ocs = [Character(**oc) async for oc in db.find(key)]
+        ocs.sort(key=lambda x: x.name)
+
+        if value is None:
+            items = ocs[:25]
+        else:
+            items = [
+                x
+                for x, _, _ in process.extract(
+                    value,
+                    ocs,
+                    limit=25,
+                    score_cutoff=75,
+                )
+            ] or [x for x in ocs if value in x]
+
+        return [Choice(name=item.display_name, value=str(item._id)) for item in items]
 
     async def convert(self, ctx: commands.Context[Client], argument: str):
         """Convert a string to a Character
