@@ -83,8 +83,8 @@ class Character:
 
         if mon := mm.search(desc):
             mon = mon[1].strip()
-            mon, *_ = name.split(".")
-            mon, *_ = name.split(",")
+            mon, *_ = mon.split(".")
+            mon, *_ = mon.split(",")
             if len(mon) > 20:
                 mon = f"{mon[:20]}..."
             name += f"《{mon}》"
