@@ -120,19 +120,25 @@ class UpdateCharacterModal(Modal, title="Update Character"):
                 )
                 return self.stop()
 
+        name, desc = self.name.value.strip(), self.desc.value.strip()
+        if not (name and desc):
+            await interaction.response.send_message(
+                "Name and Description cannot be empty!",
+                ephemeral=True,
+            )
+            return self.stop()
+
         db = interaction.client.db("Characters")
         await db.update_one(
             {"_id": self.character._id},
-            {
-                "$set": {
-                    "name": self.name.value,
-                    "description": self.desc.value,
-                }
-            },
+            {"$set": {"name": name, "description": desc}},
         )
+        self.character.name = name
+        self.character.description = desc
 
+        embed = self.character.embed
         await interaction.response.send_message(
             f"Updated {self.name.value!r}",
-            ephemeral=True,
+            embed=embed,
         )
         self.stop()
