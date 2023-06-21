@@ -22,7 +22,6 @@ from pathlib import Path, PurePath
 
 import discord
 from discord.ext import commands
-from discord.ext.commands.help import HelpCommand
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
 
@@ -30,7 +29,6 @@ class Client(commands.Bot):
     def __init__(self, log: Logger) -> None:
         super(Client, self).__init__(
             intents=discord.Intents.all(),
-            help_command=HelpCommand(),
             owner_id=678374009045254198,
             command_prefix=commands.when_mentioned_or("!"),
             description="SSEF Discord Bot",
