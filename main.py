@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from logging import getLogger, INFO
+from logging import INFO, getLogger
 
 from dotenv import load_dotenv
 

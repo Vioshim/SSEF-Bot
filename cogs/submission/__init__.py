@@ -13,16 +13,16 @@
 # limitations under the License.
 
 
+from itertools import groupby
 from textwrap import TextWrapper
+from typing import Optional
 
 import discord
-from rapidfuzz import process
 from discord.ext import commands
 from discord.utils import escape_mentions, remove_markdown
-from itertools import groupby
+from rapidfuzz import process
 
 from classes.character import Character, CharacterArg
-from typing import Optional
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
 
@@ -92,8 +92,11 @@ class Submission(commands.Cog):
             for k, v in groupby(ocs, lambda x: x.user_id):
                 m = guild.get_member(k)
                 if m and len(embed.fields) < 25:
-                    embed.add_field(name=str(m), value="\n".join(f"* {oc.display_name}" for oc in v)[:1024])
-                    
+                    embed.add_field(
+                        name=str(m),
+                        value="\n".join(f"* {oc.display_name}" for oc in v)[:1024],
+                    )
+
             await ctx.reply(embed=embed, ephemeral=True)
         else:
             await ctx.reply(
@@ -216,11 +219,10 @@ class Submission(commands.Cog):
         oc : Optional[str]
             Character
         """
-        embed = discord.Embed(title="Characters")
-
         if oc:
             return await ctx.invoke(self.read, oc=oc)
 
+        embed = discord.Embed(title="Characters")
         if author is None:
             key = {}
             embed.color = ctx.author.color

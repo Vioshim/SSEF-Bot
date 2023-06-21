@@ -186,7 +186,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         ocs.sort(key=lambda x: x.name)
 
         if value is None:
-            items = ocs[:25]
+            items = ocs
         else:
             items = [
                 x
@@ -196,9 +196,9 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
                     limit=25,
                     score_cutoff=75,
                 )
-            ] or [x for x in ocs if value in x]
+            ] or [x for x in ocs if value.lower() in x.display_name.lower()]
 
-        return [Choice(name=item.display_name, value=str(item._id)) for item in items]
+        return [Choice(name=item.display_name, value=str(item._id)) for item in items[:25]]
 
     async def convert(self, ctx: commands.Context[Client], argument: str):
         """Convert a string to a Character
