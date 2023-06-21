@@ -69,6 +69,8 @@ class Character:
     def oc_name(self):
         desc = remove_markdown(self.description)
         name = name[1].strip() if (name := matchers[0].search(desc)) else self.name
+        name, *_ = name.split(".")
+        name, *_ = name.split(",")
         return remove_markdown(name)
 
     @property
@@ -76,13 +78,17 @@ class Character:
         desc = remove_markdown(self.description)
         nm, mm, lm = matchers
         name = name[1].strip() if (name := nm.search(desc)) else self.name
-        name += f"《{mon[1].strip()}》" if (mon := mm.search(desc)) else "《...》"
-        if lvl := lm.search(desc):
-            name = f"{int(lvl[1]):03d}〙{name}"
-        else:
-            name = f"...〙{name}"
 
-        return remove_markdown(name)
+        if mon := mm.search(desc):
+            mon = mon[1].strip()
+            mon, *_ = name.split(".")
+            mon, *_ = name.split(",")
+            name += f"《{mon}》"
+        else:
+            name += "《Unknown》"
+
+        lvl = int(lvl[1]) if (lvl := lm.search(desc)) else 0
+        return remove_markdown(f"{lvl:03d}〙{name}")
 
     @classmethod
     async def converter(cls, ctx: commands.Context[Client] | Interaction[Client], argument: str):

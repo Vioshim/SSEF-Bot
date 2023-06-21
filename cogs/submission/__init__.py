@@ -71,7 +71,7 @@ class Submission(commands.Cog):
                 score_cutoff=60,
             ):
                 oc = result[0]
-            elif len(ocs := [oc for oc in ocs if text in oc]) == 1:
+            elif len(ocs := [oc for oc in ocs if text.lower() in oc.display_name.lower()]) == 1:
                 oc = ocs[0]
 
         if isinstance(oc, Character):
@@ -200,6 +200,7 @@ class Submission(commands.Cog):
         ctx: commands.Context[Client],
         query: remove_markdown,
         author: Optional[discord.Member | discord.User] = None,
+        oc: Optional[CharacterArg] = None,
     ):
         """Search for a character
 
@@ -211,8 +212,13 @@ class Submission(commands.Cog):
             Query to search
         author : Optional[discord.Member | discord.User]
             Author of the character
+        oc : Optional[str]
+            Character
         """
         embed = discord.Embed(title="Characters")
+
+        if oc:
+            return await ctx.invoke(self.read, oc=oc)
 
         if author is None:
             key = {}
@@ -234,7 +240,7 @@ class Submission(commands.Cog):
             )
         ]
 
-        items.extend(x for x in ocs if x not in items and query in x)
+        items.extend(x for x in ocs if x not in items and query.lower() in x.display_name.lower())
         items.sort(key=lambda x: (x.user_id, x.name))
         guild = ctx.guild or ctx.author.mutual_guilds[0]
 
