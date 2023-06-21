@@ -136,10 +136,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         try:
             key["_id"] = ObjectId(argument)
         except Exception:
-            key["name"] = {
-                "$regex": remove_markdown(argument),
-                "$options": "i",
-            }
+            key["name"] = remove_markdown(argument)
 
         if result := await db.find_one(key):
             return Character(**result)
