@@ -19,6 +19,7 @@ import contextlib
 
 from discord import Interaction, TextStyle
 from discord.ext import commands
+from discord.interactions import Interaction
 from discord.ui import Modal, TextInput
 
 from classes.character import Character
@@ -45,6 +46,12 @@ class CreateCharacterModal(Modal, title="Create Character"):
         max_length=4000,
         required=True,
     )
+
+    async def on_error(self, interaction: Interaction[Client], error: Exception):
+        interaction.client.log.error(
+            "An exception occurred while trying to create a character.",
+            exc_info=error,
+        )
 
     async def on_submit(self, interaction: Interaction[Client]):
         with contextlib.suppress(commands.BadArgument):
