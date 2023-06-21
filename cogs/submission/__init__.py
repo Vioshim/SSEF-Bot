@@ -192,7 +192,6 @@ class Submission(commands.Cog):
         self,
         ctx: commands.Context[Client],
         oc: CharacterArg,
-        *,
         name: remove_markdown,
     ):
         """Edit a character
