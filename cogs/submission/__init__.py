@@ -300,7 +300,7 @@ class Submission(commands.Cog):
         await self.db.delete_one({"_id": oc._id, "user_id": ctx.author.id})
         await ctx.reply(embed=oc.embed)
 
-    @commands.command()
+    @commands.command(aliases=["deletechar", "removechar"])
     async def delchar(self, ctx: commands.Context[Client], *, oc: CharacterArg):
         """Delete a character
 
