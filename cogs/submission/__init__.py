@@ -140,8 +140,14 @@ class Submission(commands.Cog):
         oc : str
             Character
         """
-        for text in self.wrapper.wrap(oc.description):
-            await ctx.reply(content=text, ephemeral=True)
+        for index, text in enumerate(self.wrapper.wrap(oc.description)):
+            await ctx.reply(
+                content=text,
+                ephemeral=True,
+                allowed_mentions=discord.AllowedMentions(
+                    replied_user=index == 0,
+                ),
+            )
 
     @char.command(aliases=["del", "remove"])
     async def delete(self, ctx: commands.Context[Client], *, oc: CharacterArg):
