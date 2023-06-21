@@ -185,18 +185,10 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         ocs = [Character(**oc) async for oc in db.find(key)]
         ocs.sort(key=lambda x: x.name)
 
-        if value is None:
+        if not value:
             items = ocs
         else:
-            items = [
-                x
-                for x, _, _ in process.extract(
-                    value,
-                    ocs,
-                    limit=25,
-                    score_cutoff=75,
-                )
-            ] or [x for x in ocs if value.lower() in x.display_name.lower()]
+            items = [x for x in ocs if value.lower() in x.display_name.lower()]
 
         return [Choice(name=item.display_name, value=str(item._id)) for item in items[:25]]
 
