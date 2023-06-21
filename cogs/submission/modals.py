@@ -64,18 +64,21 @@ class CreateCharacterModal(Modal, title="Create Character"):
             return self.stop()
 
         db = interaction.client.db("Characters")
-        await db.insert_one(
+        result = await db.insert_one(
             {
                 "name": name,
                 "description": desc,
                 "user_id": interaction.user.id,
             }
         )
-
-        await interaction.response.send_message(
-            f"Registered {name!r}",
-            ephemeral=True,
+        oc = Character(
+            _id=result.inserted_id,
+            user_id=interaction.user.id,
+            name=name,
+            description=desc,
         )
+
+        await interaction.response.send_message(f"Registered {name!r}", embed=oc.embed)
         self.stop()
 
 

@@ -265,9 +265,7 @@ class Submission(commands.Cog):
             )
         ]
         ocs.sort(key=lambda oc: oc.name)
-        description = "\n".join(f"* {oc.display_name}" for oc in ocs)
-        if not description:
-            description = "Doesn't have any characters."
+        description = "\n".join(f"* {oc.display_name}" for oc in ocs) or "Doesn't have any characters."
 
         embed = discord.Embed(
             title="Characters",
