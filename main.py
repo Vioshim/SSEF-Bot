@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from logging import getLogger
+from logging import getLogger, INFO
 
 from dotenv import load_dotenv
 
@@ -26,6 +26,7 @@ from classes.client import Client
 load_dotenv()
 
 logger = getLogger(__name__)
+logger.setLevel(INFO)
 
 
 async def main() -> None:
