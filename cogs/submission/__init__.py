@@ -18,6 +18,7 @@ from textwrap import TextWrapper
 from typing import Optional
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 from discord.utils import escape_mentions, remove_markdown
 from rapidfuzz import process
@@ -39,6 +40,16 @@ class Submission(commands.Cog):
             fix_sentence_endings=False,
         )
         self.db = bot.db("Characters")
+        self.itx_menu1 = app_commands.ContextMenu(
+            name="See list",
+            callback=self.list_menu,
+        )
+
+    async def cog_load(self):
+        self.bot.tree.add_command(self.itx_menu1)
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(self.itx_menu1.name, type=self.itx_menu1.type)
 
     @commands.hybrid_group(
         aliases=["oc", "character"],
@@ -405,6 +416,35 @@ class Submission(commands.Cog):
         )
         embed.set_author(name=user.display_name, icon_url=user.display_avatar)
         await ctx.reply(embed=embed, ephemeral=True)
+
+    async def list_menu(self, itx: discord.Interaction[Client], member: discord.Member | discord.User):
+        """Get a character
+
+        Parameters
+        ----------
+        itx : discord.Interaction[Client]
+            Interaction
+        member : discord.Member | discord.User
+            User to get the characters from
+        """
+        ocs = [
+            Character(**oc)
+            async for oc in self.db.find(
+                {
+                    "user_id": member.id,
+                }
+            )
+        ]
+        ocs.sort(key=lambda oc: oc.name)
+        description = "\n".join(f"* {oc.display_name}" for oc in ocs) or "Doesn't have any characters."
+
+        embed = discord.Embed(
+            title="Characters",
+            color=member.color,
+            description=description,
+        )
+        embed.set_author(name=member.display_name, icon_url=member.display_avatar)
+        await itx.response.send_message(embed=embed, ephemeral=True)
 
 
 async def setup(bot: Client):

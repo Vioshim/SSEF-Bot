@@ -78,11 +78,15 @@ class Character:
         desc = remove_markdown(self.description)
         nm, mm, lm = matchers
         name = name[1].strip() if (name := nm.search(desc)) else self.name
+        if len(name) > 20:
+            name = f"{name[:20]}..."
 
         if mon := mm.search(desc):
             mon = mon[1].strip()
             mon, *_ = name.split(".")
             mon, *_ = name.split(",")
+            if len(mon) > 20:
+                mon = f"{mon[:20]}..."
             name += f"《{mon}》"
         else:
             name += "《Unknown》"
