@@ -84,7 +84,7 @@ class CreateCharacterModal(Modal, title="Create Character"):
             description=desc,
         )
 
-        await interaction.response.send_message(f"Registered {name!r}", embed=oc.embed)
+        await interaction.response.send_message(embed=oc.embed)
         self.stop()
 
 
@@ -120,6 +120,7 @@ class UpdateCharacterModal(Modal, title="Update Character"):
                 )
                 return self.stop()
 
+        oc = self.character
         name, desc = self.name.value.strip(), self.desc.value.strip()
         if not (name and desc):
             await interaction.response.send_message(
@@ -130,15 +131,9 @@ class UpdateCharacterModal(Modal, title="Update Character"):
 
         db = interaction.client.db("Characters")
         await db.update_one(
-            {"_id": self.character._id},
+            {"_id": oc._id},
             {"$set": {"name": name, "description": desc}},
         )
-        self.character.name = name
-        self.character.description = desc
-
-        embed = self.character.embed
-        await interaction.response.send_message(
-            f"Updated {self.name.value!r}",
-            embed=embed,
-        )
+        oc.name, oc.description = name, desc
+        await interaction.response.send_message(embed=oc.embed)
         self.stop()

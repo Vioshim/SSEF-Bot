@@ -155,7 +155,7 @@ class Submission(commands.Cog):
             Character to delete
         """
         await self.db.delete_one({"_id": oc._id, "user_id": ctx.author.id})
-        await ctx.reply(f"Deleted {oc.name!r}", ephemeral=True)
+        await ctx.reply(embed=oc.embed)
 
     @char.app_command.command()
     async def update(self, itx: discord.Interaction[Client], *, oc: CharacterArg):
