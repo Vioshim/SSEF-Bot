@@ -19,7 +19,6 @@ import contextlib
 
 from discord import Interaction, TextStyle
 from discord.ext import commands
-from discord.interactions import Interaction
 from discord.ui import Modal, TextInput
 
 from classes.character import Character

@@ -98,10 +98,10 @@ class Character:
         """
         if isinstance(ctx, Interaction):
             db = ctx.client.db("Characters")
+            key = {"user_id": ctx.user.id}
         else:
             db = ctx.bot.db("Characters")
-
-        key = {"user_id": ctx.author.id}
+            key = {"user_id": ctx.author.id}
 
         try:
             key["_id"] = ObjectId(argument)
@@ -111,7 +111,7 @@ class Character:
         if result := await db.find_one(key):
             return cls(**result)
 
-        ocs = [cls(**oc) async for oc in db.find({"user_id": ctx.author.id})]
+        ocs = [cls(**oc) async for oc in db.find({"user_id": key["user_id"]})]
 
         if not ocs:
             raise commands.BadArgument("You have no characters")
