@@ -1,4 +1,4 @@
-# SSEC Bot
+# SSEF Bot
 
 ---
 

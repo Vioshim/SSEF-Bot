@@ -28,7 +28,7 @@ from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
 
 
 class Submission(commands.Cog):
-    def __init__(self, bot: Client) -> None:
+    def __init__(self, bot: Client):
         self.bot = bot
         self.wrapper = TextWrapper(
             width=2000,
@@ -350,6 +350,27 @@ class Submission(commands.Cog):
             {"$set": {"description": description}},
         )
         await ctx.reply(f"Changed description of {oc.name!r}", ephemeral=True)
+
+    @commands.command()
+    async def editchar(
+        self,
+        ctx: commands.Context[Client],
+        oc: CharacterArg,
+        *,
+        description: escape_mentions,
+    ):
+        """Edit a character
+
+        Parameters
+        ----------
+        ctx : commands.Context[Client]
+            Context of the command
+        oc : CharacterArg
+            Character to edit
+        description : str
+            Description of the character
+        """
+        await ctx.invoke(self.description, oc=oc, description=description)
 
     @char.command()
     async def list(
