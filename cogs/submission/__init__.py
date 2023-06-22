@@ -254,7 +254,7 @@ class Submission(commands.Cog):
     async def search(
         self,
         ctx: commands.Context[Client],
-        query: remove_markdown = "",
+        query: str = "",
         author: Optional[discord.Member | discord.User] = None,
         *,
         oc: Optional[CharacterArg] = None,
@@ -285,7 +285,7 @@ class Submission(commands.Cog):
             embed.set_author(name=author.display_name, icon_url=author.display_avatar)
 
         ocs = [Character(**oc) async for oc in self.db.find(key)]
-
+        query = remove_markdown(query)
         items = [
             x
             for x, _, _ in process.extract(
