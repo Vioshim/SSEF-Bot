@@ -229,7 +229,28 @@ class Submission(commands.Cog):
                     ),
                 )
 
-    @char.command()
+    @char.command(with_app_command=False)
+    async def query(
+        self,
+        ctx: commands.Context[Client],
+        *,
+        query: remove_markdown = "",
+    ):
+        await ctx.invoke(self.search, query=query)
+
+    @char.command(with_app_command=False)
+    async def find(
+        self,
+        ctx: commands.Context[Client],
+        author: Optional[discord.Member | discord.User] = None,
+        *,
+        oc: Optional[CharacterArg] = None,
+    ):
+        if oc:
+            return await ctx.invoke(self.read, oc=oc)
+        return await ctx.invoke(self.search, author=author)
+
+    @char.app_command.command()
     async def search(
         self,
         ctx: commands.Context[Client],
