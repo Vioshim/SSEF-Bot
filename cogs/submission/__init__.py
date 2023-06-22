@@ -120,7 +120,6 @@ class Submission(commands.Cog):
 
         if template == "Empty Sheet":
             modal.desc.default = (
-                "Name:\n"
                 "Brotherhood:\n"
                 "Job:\n"
                 "Age:\n"
@@ -142,7 +141,7 @@ class Submission(commands.Cog):
                 "Spe:"
             )
         else:
-            modal.desc.default = "Name:\nAge:\nGender:\nInfo:\nAppearance:"
+            modal.desc.default = "Age:\nGender:\nInfo:\nAppearance:"
         await itx.response.send_modal(modal)
 
     @char.command(aliases=["new"], with_app_command=False)
@@ -527,6 +526,23 @@ class Submission(commands.Cog):
             Description of the character
         """
         await ctx.invoke(self.description, oc=oc, description=description)
+
+    @commands.command(aliases=["list"])
+    async def listchar(
+        self,
+        ctx: commands.Context[Client],
+        user: discord.Member | discord.User = commands.Author,
+    ):
+        """Get a character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        user : discord.Member | discord.User
+            User to get the characters from
+        """
+        await ctx.invoke(self.list, user=user)
 
     @char.command()
     async def list(
