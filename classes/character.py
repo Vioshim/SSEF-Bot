@@ -122,7 +122,8 @@ class Character:
         except Exception:
             key["name"] = remove_markdown(argument)
 
-        if result := await db.find_one(key):
+        guild = ctx.guild or ctx.author.mutual_guilds[0]
+        if (result := await db.find_one(key)) and guild.get_member(result["user_id"]):
             return cls(**result)
 
         ocs = [cls(**oc) async for oc in db.find({"user_id": key["user_id"]})]

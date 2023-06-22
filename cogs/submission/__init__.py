@@ -73,7 +73,8 @@ class Submission(commands.Cog):
             oc = None
 
         if oc is None:
-            ocs = [Character(**oc) async for oc in self.db.find({})]
+            guild = ctx.guild or ctx.author.mutual_guilds[0]
+            ocs = [Character(**oc) async for oc in self.db.find({}) if guild.get_member(oc["user_id"])]
 
             if result := process.extractOne(
                 text,
@@ -284,7 +285,8 @@ class Submission(commands.Cog):
             embed.color = author.color
             embed.set_author(name=author.display_name, icon_url=author.display_avatar)
 
-        ocs = [Character(**oc) async for oc in self.db.find(key)]
+        guild = ctx.guild or ctx.author.mutual_guilds[0]
+        ocs = [Character(**oc) async for oc in self.db.find(key) if guild.get_member(oc["user_id"])]
         query = remove_markdown(query)
         items = [
             x
