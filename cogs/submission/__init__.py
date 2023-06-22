@@ -250,11 +250,13 @@ class Submission(commands.Cog):
             )
         ]
 
-        items.extend(x for x in ocs if x not in items and query.lower() in x.display_name.lower())
+        if not items:
+            items.extend(x for x in ocs if x not in items and query.lower() in x.display_name.lower())
+
         items.sort(key=lambda x: (x.user_id, x.name))
         guild = ctx.guild or ctx.author.mutual_guilds[0]
 
-        for k, v in groupby(items, lambda x: x.user_id):
+        for k, v in groupby(items, key=lambda x: x.user_id):
             m = guild.get_member(k)
             if m and len(embed.fields) < 25:
                 embed.add_field(
@@ -262,7 +264,10 @@ class Submission(commands.Cog):
                     value="\n".join(f"* {oc.display_name}" for oc in v)[:1024],
                 )
 
-        await ctx.reply(embed=embed, ephemeral=True)
+        if len(embed) > 6000:
+            await ctx.reply("Too many characters found.", ephemeral=True)
+        else:
+            await ctx.reply(embed=embed, ephemeral=True)
 
     @char.command(with_app_command=False)
     async def find(
