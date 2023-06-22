@@ -377,15 +377,26 @@ class Submission(commands.Cog):
         modal = UpdateCharacterModal(oc)
         await itx.response.send_modal(modal)
 
-    @char.group(invoke_without_command=True)
-    async def edit(self, _: commands.Context[Client]):
+    @char.group(invoke_without_command=True, aliases=["update"])
+    async def edit(
+        self,
+        ctx: commands.Context[Client],
+        oc: CharacterArg,
+        *,
+        description: escape_mentions,
+    ):
         """Edit a character
 
         Parameters
         ----------
-        _ : commands.Context
+        ctx : commands.Context
             Context of the command
+        oc : Character
+            Character to edit
+        description : str
+            New description
         """
+        await ctx.invoke(self.description, oc=oc, description=description)
 
     @edit.command(with_app_command=False)
     async def name(
