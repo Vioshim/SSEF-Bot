@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import contextlib
 
-from discord import Interaction, TextStyle, AllowedMentions
+from discord import Interaction, TextStyle
 from discord.ext import commands
 from discord.ui import Modal, TextInput
 
@@ -84,11 +84,8 @@ class CreateCharacterModal(Modal, title="Create Character"):
             description=desc,
         )
 
-        for index, text in enumerate(interaction.client.wrapper.wrap(oc.description)):
-            await interaction.response.send_message(
-                content=text,
-                allowed_mentions=AllowedMentions(replied_user=index == 0),
-            )
+        for text in interaction.client.wrapper.wrap(oc.description):
+            await interaction.response.send_message(content=text)
 
         self.stop()
 
@@ -140,10 +137,7 @@ class UpdateCharacterModal(Modal, title="Update Character"):
             {"$set": {"name": name, "description": desc}},
         )
         oc.name, oc.description = name, desc
-        for index, text in enumerate(interaction.client.wrapper.wrap(oc.description)):
-            await interaction.response.send_message(
-                content=text,
-                allowed_mentions=AllowedMentions(replied_user=index == 0),
-            )
+        for text in interaction.client.wrapper.wrap(oc.description):
+            await interaction.response.send_message(content=text)
 
         self.stop()

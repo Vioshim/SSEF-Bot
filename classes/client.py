@@ -19,9 +19,9 @@ import os
 import sys
 from logging import Logger
 from pathlib import Path, PurePath
+from textwrap import TextWrapper
 
 import discord
-from textwrap import TextWrapper
 from discord.ext import commands
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
@@ -35,12 +35,7 @@ class Client(commands.Bot):
             description="SSEF Discord Bot",
             command_attrs=dict(hidden=True),
             case_insensitive=True,
-            allowed_mentions=discord.AllowedMentions(
-                everyone=False,
-                roles=False,
-                users=False,
-                replied_user=True,
-            ),
+            allowed_mentions=discord.AllowedMentions.none(),
         )
         self.log = log
         self.wrapper = TextWrapper(

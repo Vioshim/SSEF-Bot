@@ -78,14 +78,8 @@ class Submission(commands.Cog):
                 oc = ocs[0]
 
         if isinstance(oc, Character):
-            for index, text in enumerate(ctx.bot.wrapper.wrap(oc.description)):
-                await ctx.reply(
-                    content=text,
-                    ephemeral=True,
-                    allowed_mentions=discord.AllowedMentions(
-                        replied_user=index == 0,
-                    ),
-                )
+            for text in ctx.bot.wrapper.wrap(oc.description):
+                await ctx.reply(content=text, ephemeral=True)
         elif ocs:
             embed = discord.Embed(title="Characters", color=ctx.author.color)
 
@@ -212,14 +206,8 @@ class Submission(commands.Cog):
             Character
         """
         if isinstance(oc, Character):
-            for index, text in enumerate(ctx.bot.wrapper.wrap(oc.description)):
-                await ctx.reply(
-                    content=text,
-                    ephemeral=True,
-                    allowed_mentions=discord.AllowedMentions(
-                        replied_user=index == 0,
-                    ),
-                )
+            for text in ctx.bot.wrapper.wrap(oc.description):
+                await ctx.reply(content=text, ephemeral=True)
 
     @char.command(with_app_command=False)
     async def query(
