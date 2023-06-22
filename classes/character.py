@@ -209,7 +209,6 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         Character
             Character object
         """
-        print(ctx.args, ctx.kwargs)
         return await Character.converter(ctx, argument)
 
 

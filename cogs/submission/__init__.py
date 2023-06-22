@@ -275,16 +275,13 @@ class Submission(commands.Cog):
         ctx: commands.Context[Client],
         author: Optional[discord.Member | discord.User] = None,
         *,
-        query: Optional[CharacterArg | str] = None,
+        query: Optional[str] = None,
     ):
-        if isinstance(query, Character):
-            return await ctx.invoke(self.read, oc=query)
-
         if not query:
             return await ctx.invoke(self.list, user=author)
 
         author = author or ctx.author
-        key = {"user_id": author.id}
+        key = {"user_id": author.id} if author else {}
         ocs = [Character(**oc) async for oc in self.db.find(key)]
         if result := process.extractOne(
             query,
