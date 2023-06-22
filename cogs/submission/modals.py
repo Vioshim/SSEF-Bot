@@ -41,7 +41,6 @@ class CreateCharacterModal(Modal, title="Create Character"):
         label="Description",
         style=TextStyle.paragraph,
         placeholder="OC's Description",
-        default="Species:\nMoveset:\nLevel:\nAge:\nGender:\nInfo:\nAppearance:",
         max_length=4000,
         required=True,
     )

@@ -14,7 +14,7 @@
 
 
 from itertools import groupby
-from typing import Optional
+from typing import Literal, Optional
 
 import discord
 from discord import app_commands
@@ -102,15 +102,47 @@ class Submission(commands.Cog):
             )
 
     @char.app_command.command()
-    async def create(self, itx: discord.Interaction[Client]):
+    async def create(
+        self,
+        itx: discord.Interaction[Client],
+        template: Literal["Empty Sheet", "Pocket Sheet"],
+    ):
         """Create a new character
 
         Parameters
         ----------
         itx : discord.Interaction
             Interaction of the command
+        template : Literal["Empty Sheet", "Pocket Sheet"]
+            Template of the character
         """
         modal = CreateCharacterModal(timeout=None)
+
+        if template == "Empty Sheet":
+            modal.desc.default = (
+                "Name:\n"
+                "Brotherhood:\n"
+                "Job:\n"
+                "Age:\n"
+                "Level:\n"
+                "Gender:\n"
+                "Species:\n"
+                "Sexuality:\n"
+                "Magic:\n"
+                "Equipment:\n"
+                "Information:\n"
+                "Appearance:\n"
+                "Inherit:\n"
+                "Stats:\n"
+                "HP:\n"
+                "Atk:\n"
+                "SpAtk:\n"
+                "Def:\n"
+                "SpDef:\n"
+                "Spe:"
+            )
+        else:
+            modal.desc.default = "Name:\nAge:\nGender:\nInfo:\nAppearance:"
         await itx.response.send_modal(modal)
 
     @char.command(aliases=["new"], with_app_command=False)
