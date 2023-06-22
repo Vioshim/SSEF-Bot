@@ -12,29 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import StrEnum
+from enum import StrEnum, auto
 
 
 class Sheet(StrEnum):
-    Empty = (
-        "Brotherhood:\n"
-        "Job:\n"
-        "Age:\n"
-        "Level:\n"
-        "Gender:\n"
-        "Species:\n"
-        "Sexuality:\n"
-        "Magic:\n"
-        "Equipment:\n"
-        "Information:\n"
-        "Appearance:\n"
-        "Inherit:\n"
-        "Stats:\n"
-        "HP:\n"
-        "Atk:\n"
-        "SpAtk:\n"
-        "Def:\n"
-        "SpDef:\n"
-        "Spe:"
-    )
-    Pocket = "Age:\nGender:\nInfo:\nAppearance:"
+    Empty = auto()
+    Pocket = auto()
+
+    @property
+    def template(self):
+        match self:
+            case Sheet.Empty:
+                return (
+                    "Brotherhood:\n"
+                    "Job:\n"
+                    "Age:\n"
+                    "Level:\n"
+                    "Gender:\n"
+                    "Species:\n"
+                    "Sexuality:\n"
+                    "Magic:\n"
+                    "Equipment:\n"
+                    "Information:\n"
+                    "Appearance:\n"
+                    "Inherit:\n"
+                    "Stats:\n"
+                    "HP:\n"
+                    "Atk:\n"
+                    "SpAtk:\n"
+                    "Def:\n"
+                    "SpDef:\n"
+                    "Spe:"
+                )
+            case _:
+                return "Age:\nGender:\nInfo:\nAppearance:"

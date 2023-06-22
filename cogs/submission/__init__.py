@@ -114,7 +114,7 @@ class Submission(commands.Cog):
             Sheet template to use
         """
         modal = CreateCharacterModal(timeout=None)
-        modal.desc.default = sheet.value
+        modal.desc.default = sheet.template
         await itx.response.send_modal(modal)
 
     @char.command(aliases=["new"], with_app_command=False)
