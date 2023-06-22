@@ -80,7 +80,7 @@ class Submission(commands.Cog):
                 text,
                 ocs,
                 processor=lambda oc: oc.name if isinstance(oc, Character) else oc,
-                score_cutoff=60,
+                score_cutoff=80,
             ):
                 oc = result[0]
             elif len(ocs := [oc for oc in ocs if text.lower() in oc.display_name.lower()]) == 1:
