@@ -275,11 +275,26 @@ class Submission(commands.Cog):
         ctx: commands.Context[Client],
         author: Optional[discord.Member | discord.User] = None,
         *,
-        oc: Optional[CharacterArg] = None,
+        query: Optional[CharacterArg | str] = None,
     ):
-        if oc:
-            return await ctx.invoke(self.read, oc=oc)
-        return await ctx.invoke(self.list, user=author)
+        if isinstance(query, Character):
+            return await ctx.invoke(self.read, oc=query)
+
+        if not query:
+            return await ctx.invoke(self.list, user=author)
+
+        author = author or ctx.author
+        key = {"user_id": author.id}
+        ocs = [Character(**oc) async for oc in self.db.find(key)]
+        if result := process.extractOne(
+            query,
+            ocs,
+            processor=lambda x: x.name if isinstance(x, Character) else x,
+            score_cutoff=80,
+        ):
+            return await ctx.invoke(self.read, oc=result[0])
+
+        await ctx.reply("No characters found.", ephemeral=True)
 
     @char.app_command.command()
     async def search(
