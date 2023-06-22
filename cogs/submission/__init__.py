@@ -279,7 +279,7 @@ class Submission(commands.Cog):
     ):
         if oc:
             return await ctx.invoke(self.read, oc=oc)
-        return await ctx.invoke(self.list, author=author)
+        return await ctx.invoke(self.list, user=author)
 
     @char.app_command.command()
     async def search(
