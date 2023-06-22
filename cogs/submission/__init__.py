@@ -14,7 +14,6 @@
 
 
 from itertools import groupby
-from textwrap import TextWrapper
 from typing import Optional
 
 import discord
@@ -31,14 +30,6 @@ from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
 class Submission(commands.Cog):
     def __init__(self, bot: Client):
         self.bot = bot
-        self.wrapper = TextWrapper(
-            width=2000,
-            break_long_words=True,
-            break_on_hyphens=False,
-            replace_whitespace=False,
-            drop_whitespace=True,
-            fix_sentence_endings=False,
-        )
         self.db = bot.db("Characters")
         self.itx_menu1 = app_commands.ContextMenu(
             name="See list",
@@ -87,7 +78,7 @@ class Submission(commands.Cog):
                 oc = ocs[0]
 
         if isinstance(oc, Character):
-            for index, text in enumerate(self.wrapper.wrap(oc.description)):
+            for index, text in enumerate(ctx.bot.wrapper.wrap(oc.description)):
                 await ctx.reply(
                     content=text,
                     ephemeral=True,
@@ -221,7 +212,7 @@ class Submission(commands.Cog):
             Character
         """
         if isinstance(oc, Character):
-            for index, text in enumerate(self.wrapper.wrap(oc.description)):
+            for index, text in enumerate(ctx.bot.wrapper.wrap(oc.description)):
                 await ctx.reply(
                     content=text,
                     ephemeral=True,
@@ -341,7 +332,8 @@ class Submission(commands.Cog):
         ]
 
         if not items:
-            items.extend(x for x in ocs if query.lower() in x.display_name.lower())
+            query = query.lower()
+            items.extend(x for x in ocs if query in x.display_name.lower())
 
         items.sort(key=lambda x: (x.user_id, x.name))
         guild = ctx.guild or ctx.author.mutual_guilds[0]

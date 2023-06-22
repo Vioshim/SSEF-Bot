@@ -21,6 +21,7 @@ from logging import Logger
 from pathlib import Path, PurePath
 
 import discord
+from textwrap import TextWrapper
 from discord.ext import commands
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
@@ -42,6 +43,14 @@ class Client(commands.Bot):
             ),
         )
         self.log = log
+        self.wrapper = TextWrapper(
+            width=2000,
+            break_long_words=True,
+            break_on_hyphens=False,
+            replace_whitespace=False,
+            drop_whitespace=True,
+            fix_sentence_endings=False,
+        )
         self.mongodb = AsyncIOMotorClient(os.getenv("MONGO_URI"))
 
     def db(self, db: str) -> AsyncIOMotorCollection:
