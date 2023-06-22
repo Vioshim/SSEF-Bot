@@ -14,7 +14,7 @@
 
 
 from itertools import groupby
-from typing import Literal, Optional
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -25,6 +25,7 @@ from rapidfuzz import process
 from classes.character import Character, CharacterArg
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
+from cogs.submission.sheets import Sheet
 
 
 class Submission(commands.Cog):
@@ -102,46 +103,18 @@ class Submission(commands.Cog):
             )
 
     @char.app_command.command()
-    async def create(
-        self,
-        itx: discord.Interaction[Client],
-        template: Literal["Empty Sheet", "Pocket Sheet"],
-    ):
+    async def create(self, itx: discord.Interaction[Client], sheet: Sheet):
         """Create a new character
 
         Parameters
         ----------
         itx : discord.Interaction
             Interaction of the command
-        template : Literal["Empty Sheet", "Pocket Sheet"]
-            Template of the character
+        sheet : Sheet
+            Sheet template to use
         """
         modal = CreateCharacterModal(timeout=None)
-
-        if template == "Empty Sheet":
-            modal.desc.default = (
-                "Brotherhood:\n"
-                "Job:\n"
-                "Age:\n"
-                "Level:\n"
-                "Gender:\n"
-                "Species:\n"
-                "Sexuality:\n"
-                "Magic:\n"
-                "Equipment:\n"
-                "Information:\n"
-                "Appearance:\n"
-                "Inherit:\n"
-                "Stats:\n"
-                "HP:\n"
-                "Atk:\n"
-                "SpAtk:\n"
-                "Def:\n"
-                "SpDef:\n"
-                "Spe:"
-            )
-        else:
-            modal.desc.default = "Age:\nGender:\nInfo:\nAppearance:"
+        modal.desc.default = sheet.value
         await itx.response.send_modal(modal)
 
     @char.command(aliases=["new"], with_app_command=False)
