@@ -112,21 +112,22 @@ class Character:
         """
         if isinstance(ctx, Interaction):
             db = ctx.client.db("Characters")
-            key = {"user_id": ctx.user.id}
+            user = ctx.namespace.author or ctx.user
         else:
             db = ctx.bot.db("Characters")
-            key = {"user_id": ctx.author.id}
+            user = ctx.author
+
+        key = {"user_id": user.id}
 
         try:
             key["_id"] = ObjectId(argument)
         except Exception:
             key["name"] = remove_markdown(argument)
 
-        guild = ctx.guild or ctx.author.mutual_guilds[0]
-        if (result := await db.find_one(key)) and guild.get_member(result["user_id"]):
+        if result := await db.find_one(key):
             return cls(**result)
 
-        ocs = [cls(**oc) async for oc in db.find({"user_id": key["user_id"]})]
+        ocs = [cls(**oc) async for oc in db.find({"user_id": user.id})]
 
         if not ocs:
             raise commands.BadArgument("You have no characters")

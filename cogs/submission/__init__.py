@@ -237,7 +237,32 @@ class Submission(commands.Cog):
         *,
         query: remove_markdown = "",
     ):
-        await ctx.invoke(self.search, query=query)
+        embed = discord.Embed(title="Characters", color=ctx.author.color)
+        guild = ctx.guild or ctx.author.mutual_guilds[0]
+        ocs = [Character(**oc) async for oc in self.db.find({}) if guild.get_member(oc["user_id"])]
+        items = [
+            x
+            for x, _, _ in process.extract(
+                query,
+                ocs,
+                processor=lambda x: x.name if isinstance(x, Character) else x,
+                score_cutoff=80,
+            )
+        ]
+
+        items.extend(x for x in ocs if x not in items and query.lower() in x.display_name.lower())
+        items.sort(key=lambda x: (x.user_id, x.name))
+        guild = ctx.guild or ctx.author.mutual_guilds[0]
+
+        for k, v in groupby(items, lambda x: x.user_id):
+            m = guild.get_member(k)
+            if m and len(embed.fields) < 25:
+                embed.add_field(
+                    name=str(m),
+                    value="\n".join(f"* {oc.display_name}" for oc in v)[:1024],
+                )
+
+        await ctx.reply(embed=embed, ephemeral=True)
 
     @char.command(with_app_command=False)
     async def find(
@@ -249,7 +274,7 @@ class Submission(commands.Cog):
     ):
         if oc:
             return await ctx.invoke(self.read, oc=oc)
-        return await ctx.invoke(self.search, author=author)
+        return await ctx.invoke(self.list, author=author)
 
     @char.app_command.command()
     async def search(
