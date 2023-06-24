@@ -367,6 +367,48 @@ class Submission(commands.Cog):
         """
         await ctx.invoke(self.delete, oc=oc)
 
+    @char.command(aliases=["delete-many"], with_app_command=False)
+    async def delete_many(self, ctx: commands.Context[Client], *ocs: CharacterArg):
+        """Delete many characters
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        ocs: Character
+            Characters to delete
+        """
+        ocs = set(ocs)
+
+        if not ocs:
+            return await ctx.reply("No characters provided", ephemeral=True)
+
+        await self.db.delete_many(
+            {
+                "_id": {"$in": [oc._id for oc in ocs]},
+                "user_id": ctx.author.id,
+            }
+        )
+        await ctx.reply(
+            embed=discord.Embed(
+                title=f"Deleted {len(ocs)} characters",
+                description="\n".join(oc.display_name for oc in ocs),
+            ),
+        )
+
+    @commands.command(aliases=["deletechars", "removechars"])
+    async def delchars(self, ctx: commands.Context[Client], *ocs: CharacterArg):
+        """Delete many characters
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        ocs: Character
+            Characters to delete
+        """
+        await ctx.invoke(self.delete_many, *ocs)
+
     @char.app_command.command()
     async def update(self, itx: discord.Interaction[Client], *, oc: CharacterArg):
         """Update a character
