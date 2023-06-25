@@ -83,8 +83,9 @@ class CreateCharacterModal(Modal, title="Create Character"):
             description=desc,
         )
 
+        await interaction.response.defer(thinking=True, ephemeral=False)
         for text in interaction.client.wrapper.wrap(oc.description):
-            await interaction.response.send_message(content=text)
+            await interaction.followup.send(content=text)
 
         self.stop()
 
@@ -135,8 +136,9 @@ class UpdateCharacterModal(Modal, title="Update Character"):
             {"_id": oc._id},
             {"$set": {"name": name, "description": desc}},
         )
+        await interaction.response.defer(thinking=True, ephemeral=False)
         oc.name, oc.description = name, desc
         for text in interaction.client.wrapper.wrap(oc.description):
-            await interaction.response.send_message(content=text)
+            await interaction.followup.send(content=text)
 
         self.stop()
