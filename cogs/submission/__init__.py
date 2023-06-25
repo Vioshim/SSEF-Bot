@@ -279,7 +279,7 @@ class Submission(commands.Cog):
     @char.app_command.command()
     async def search(
         self,
-        ctx: commands.Context[Client],
+        itx: discord.Interaction[Client],
         query: str = "",
         author: Optional[discord.Member | discord.User] = None,
         *,
@@ -298,19 +298,23 @@ class Submission(commands.Cog):
         oc : Optional[str]
             Character
         """
-        if oc:
-            return await ctx.invoke(self.read, oc=oc)
+        await itx.response.defer(ephemeral=True, thinking=True)
+
+        if isinstance(oc, Character):
+            for text in self.bot.wrapper.wrap(oc.description):
+                await itx.followup.send(content=text, ephemeral=True)
+            return
 
         embed = discord.Embed(title="Characters")
         if author is None:
             key = {}
-            embed.color = ctx.author.color
+            embed.color = itx.user.color
         else:
             key = {"user_id": author.id}
             embed.color = author.color
             embed.set_author(name=author.display_name, icon_url=author.display_avatar)
 
-        guild = ctx.guild or ctx.author.mutual_guilds[0]
+        guild = itx.guild or itx.user.mutual_guilds[0]
         ocs = [Character(**oc) async for oc in self.db.find(key) if guild.get_member(oc["user_id"])]
         query = remove_markdown(query)
         items = [
@@ -328,7 +332,6 @@ class Submission(commands.Cog):
             items.extend(x for x in ocs if query in x.display_name.lower())
 
         items.sort(key=lambda x: (x.user_id, x.name))
-        guild = ctx.guild or ctx.author.mutual_guilds[0]
 
         for k, v in groupby(items, lambda x: x.user_id):
             m = guild.get_member(k)
@@ -338,7 +341,7 @@ class Submission(commands.Cog):
                     value="\n".join(f"* {oc.display_name}" for oc in v)[:1024],
                 )
 
-        await ctx.reply(embed=embed, ephemeral=True)
+        await itx.followup.send(embed=embed, ephemeral=True)
 
     @char.command(aliases=["del", "remove"])
     async def delete(self, ctx: commands.Context[Client], *, oc: CharacterArg):
