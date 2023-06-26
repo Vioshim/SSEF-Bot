@@ -220,6 +220,15 @@ class Submission(commands.Cog):
         *,
         query: remove_markdown = "",
     ):
+        """Query characters
+
+        Parameters
+        ----------
+        ctx : commands.Context[Client]
+            Context of the command
+        query : remove_markdown, optional
+            Query to search for, by default ""
+        """
         embed = discord.Embed(title="Characters", color=ctx.author.color)
         guild = ctx.guild or ctx.author.mutual_guilds[0]
         ocs = [Character(**oc) async for oc in self.db.find({}) if guild.get_member(oc["user_id"])]
@@ -233,8 +242,9 @@ class Submission(commands.Cog):
             )
         ]
 
-        if not items:
-            items.extend(x for x in ocs if query.lower() in x.display_name.lower())
+        if not items and query:
+            query: str = query.lower()
+            items.extend(x for x in ocs if query in x.display_name.lower())
 
         items.sort(key=lambda x: (x.user_id, x.name))
         guild = ctx.guild or ctx.author.mutual_guilds[0]
@@ -260,6 +270,17 @@ class Submission(commands.Cog):
         *,
         query: Optional[str] = None,
     ):
+        """Find a character
+
+        Parameters
+        ----------
+        ctx : commands.Context[Client]
+            Context of the command
+        author : Optional[discord.Member  |  discord.User], optional
+            Author of the character, by default None
+        query : Optional[str], optional
+            Query to search for, by default None
+        """
         if not query:
             return await ctx.invoke(self.list, user=author)
 
@@ -289,8 +310,8 @@ class Submission(commands.Cog):
 
         Parameters
         ----------
-        ctx : commands.Context
-            Context of the command
+        itx : discord.Interaction
+            Interaction
         query : str
             Query to search
         author : Optional[discord.Member | discord.User]
