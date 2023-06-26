@@ -44,7 +44,7 @@ class Utilities(commands.Cog):
         expression : str
             Expression (Example: d20)
         """
-        await ctx.defer(ephemeral=True, thinking=True)
+        await ctx.defer(ephemeral=True)
 
         embed = discord.Embed(
             title=f"Rolling: {expression}",
