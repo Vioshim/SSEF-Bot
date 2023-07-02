@@ -149,14 +149,17 @@ class Submission(commands.Cog):
                     ephemeral=True,
                 )
 
+            if ctx.message and ctx.message.attachments:
+                description += "\n# Attachments\n" + "\n".join(item.proxy_url for item in ctx.message.attachments)
+
             try:
                 oc = await Character.converter(ctx, name)
                 await ctx.reply(f"{oc.name!r} already exists.", ephemeral=True)
             except commands.BadArgument:
                 await self.db.insert_one(
                     {
-                        "name": name,
-                        "description": description,
+                        "name": name.strip(),
+                        "description": description.strip(),
                         "user_id": ctx.author.id,
                     }
                 )
