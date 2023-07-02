@@ -143,6 +143,10 @@ class Submission(commands.Cog):
             )
 
         if description and name:
+
+            if name.lower().startswith("name:"):
+                name = name[5:].strip()
+
             if len(name) > 256:
                 return await ctx.reply(
                     "Name must be less than 256 characters.",
@@ -150,7 +154,8 @@ class Submission(commands.Cog):
                 )
 
             if ctx.message and ctx.message.attachments:
-                description += "\n# Attachments\n" + "\n".join(item.proxy_url for item in ctx.message.attachments)
+                description = f"{description.strip()}\n# Attachments\n"
+                description += "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
 
             try:
                 oc = await Character.converter(ctx, name)
