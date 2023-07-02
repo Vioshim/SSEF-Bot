@@ -544,8 +544,12 @@ class Submission(commands.Cog):
         description : str
             Description of the character
         """
+        if ctx.message and ctx.message.attachments:
+            description = f"{description.strip()}\n# Attachments\n"
+            description += "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+
         if description == oc.description:
-            return await ctx.reply("You can't set the same description.")
+            return await ctx.reply("You can't set the same description.", ephemeral=True)
 
         await self.db.update_one(
             {"_id": oc._id, "user_id": ctx.author.id},
