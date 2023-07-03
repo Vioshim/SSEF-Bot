@@ -77,7 +77,8 @@ class Character:
     def display_name(self):
         desc = remove_markdown(self.description)
         nm, mm, lm = matchers
-        name = name[1].strip() if (name := nm.search(desc)) else self.name
+        name = name[1] if (name := nm.search(desc)) else self.name
+
         if len(name) > 20:
             name = f"{name[:20]}..."
 
@@ -87,12 +88,11 @@ class Character:
             mon, *_ = mon.split(",")
             if len(mon) > 20:
                 mon = f"{mon[:20]}..."
-            name += f"《{mon}》"
         else:
-            name += "《Unknown》"
+            mon = "Unknown"
 
         lvl = int(lvl[1]) if (lvl := lm.search(desc)) else 0
-        return remove_markdown(f"{lvl:03d}〙{name}")
+        return remove_markdown(f"{lvl:03d}〙{name}《{mon.strip()}》")
 
     @classmethod
     async def converter(cls, ctx: commands.Context[Client] | Interaction[Client], argument: str):

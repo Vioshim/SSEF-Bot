@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "SSEF's Bot"
 authors = ["Vioshim"]
 readme = "README.md"
-packages = [{include = "ssef_bot"}]
+packages = [{ include = "ssef_bot" }]
 
 [tool.poetry.dependencies]
 python = "^3.11.4"
@@ -14,8 +14,8 @@ python = "^3.11.4"
 ] }
 jishaku = "^2.5.1"
 uvloop = { version = "^0.17.0", platform = "linux" }
-rapidfuzz = "^2.6.0"
-motor = { extras = ["srv"], version = "^3.0.0" }
+rapidfuzz = "^2.15.1"
+motor = { extras = ["srv"], version = "^3.2.0" }
 pymongo = { extras = ["srv"], version = "^4.2.0" }
 python-dotenv = "^0.20.0"
 d20 = "^1.1.2"
@@ -30,13 +30,11 @@ isort = { version = "^5.10.1", extras = [
     "pipfile_deprecated_finder",
 ] }
 
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-
 line-length = 120 # override black's default line-length
 target-version = ["py311"]
 exclude = '''
@@ -54,12 +52,12 @@ exclude = '''
   | dist
 )/
 '''
+
 [tool.pyright]
 useLibraryCodeForTypes = true
 typeCheckingMethod = "basic"
 pythonVersion = "3.11.4"
 flake8 = "^4.0.1"
-
 
 [tool.isort]
 # make it compatible with black
