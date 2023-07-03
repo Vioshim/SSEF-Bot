@@ -32,7 +32,7 @@ logger.setLevel(INFO)
 async def main() -> None:
     try:
         async with Client(logger) as bot:
-            await bot.login(os.getenv("DISCORD_TOKEN", ""))
+            await bot.login(os.environ["DISCORD_TOKEN"])
             await bot.connect(reconnect=True)
     except Exception as e:
         logger.critical(

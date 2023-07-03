@@ -147,10 +147,8 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
     async def transform(self, interaction: Interaction[Client], argument: str) -> Character:
         db = interaction.client.db("Characters")
 
-        if author := interaction.namespace.author:
-            key = {"user_id": author.id}
-        else:
-            key = {"user_id": interaction.user.id}
+        author = interaction.namespace.author or interaction.user
+        key = {"user_id": author.id}
 
         try:
             key["_id"] = ObjectId(argument)
@@ -183,10 +181,8 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
     ) -> list[Choice[str]]:
         db = interaction.client.db("Characters")
 
-        if author := interaction.namespace.author:
-            key = {"user_id": author.id}
-        else:
-            key = {"user_id": interaction.user.id}
+        author = interaction.namespace.author or interaction.user
+        key = {"user_id": author.id}
 
         ocs = [Character(**oc) async for oc in db.find(key)]
         ocs.sort(key=lambda x: x.name)
