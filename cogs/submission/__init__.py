@@ -14,7 +14,7 @@
 
 
 from itertools import groupby
-from typing import Optional, Literal
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -22,7 +22,7 @@ from discord.ext import commands
 from discord.utils import escape_mentions, remove_markdown
 from rapidfuzz import process
 
-from classes.stats import StatArg
+from cogs.submission.stats import StatArg, KindArg, Kind
 from classes.character import Character, CharacterArg
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
@@ -455,13 +455,32 @@ class Submission(commands.Cog):
         modal = UpdateCharacterModal(oc)
         await itx.response.send_modal(modal)
 
-    async def stats_handler(
+    @char.command()
+    async def stats(
         self,
         ctx: commands.Context[Client],
-        points: float = 0.0,
+        level: commands.Range[float, 0.0],
+        kind: KindArg = Kind.Final,
+        *,
         stats: Optional[StatArg] = None,
     ):
+        """Calculate stats for a character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        level : commands.Range[float, 1.0]
+            Level of the character
+        kind : Kind
+            Kind of the character (default: Final)
+        stats : Stats
+            Stats of the character (default: 1 1 1 1 1 1)
+        """
+        points = kind.value * level + 42
+
         embed = discord.Embed(title=f"Total Points = {points}")
+        embed.set_author(name=f"Using {kind.name} which has {kind.value} points per level")
 
         try:
             values = {
@@ -492,32 +511,6 @@ class Submission(commands.Cog):
             embed.clear_fields()
 
         await ctx.reply(embed=embed, ephemeral=True)
-
-    @char.command()
-    async def stats(
-        self,
-        ctx: commands.Context[Client],
-        level: commands.Range[float, 1.0],
-        kind: Literal["basic", "evolved", "legendary"] = "evolved",
-        *,
-        stats: Optional[StatArg] = None,
-    ):
-        """Calculate stats for a character
-
-        Parameters
-        ----------
-        ctx : commands.Context
-            Context of the command
-        level : commands.Range[float, 1.0]
-            Level of the character
-        kind : Literal["non-evolved", "evolved", "legendary"]
-            Kind of the character (default: evolved)
-        stats : Stats
-            Stats of the character (default: 1 1 1 1 1 1)
-        """
-        base = dict(basic=11, evolved=20, legendary=25)
-        points = base[kind] * level + 42
-        await self.stats_handler(ctx, points=points, stats=stats)
 
     @char.group(invoke_without_command=True, aliases=["update"])
     async def edit(

@@ -14,7 +14,7 @@
 
 
 from __future__ import annotations
-from enum import StrEnum
+from enum import StrEnum, IntEnum
 from discord.ext import commands
 from discord import Interaction
 from discord.app_commands import Choice, Transform, Transformer
@@ -32,6 +32,13 @@ class Stats(StrEnum):
     Leafeon = "65 110 130 60 65 95"
     Glaceon = "65 60 110 130 95 65"
     Sylveon = "95 65 65 110 130 60"
+
+
+class Kind(IntEnum):
+    Basic = 11
+    Middle = 15
+    Final = 20
+    Legendary = 25
 
 
 class StatTransformer(commands.Converter[str], Transformer):
@@ -61,14 +68,18 @@ class StatTransformer(commands.Converter[str], Transformer):
         return await self.process(argument)
 
     async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
-        choices = Stats if not value else (
-            x
-            for x, _, _ in process.extract(
-                value.title(),
-                Stats,
-                limit=25,
-                score_cutoff=50,
-                processor=lambda x: x.name if isinstance(x, Stats) else x,
+        choices = (
+            Stats
+            if not value
+            else (
+                x
+                for x, _, _ in process.extract(
+                    value.title(),
+                    Stats,
+                    limit=25,
+                    score_cutoff=50,
+                    processor=lambda x: x.name if isinstance(x, Stats) else x,
+                )
             )
         )
         return [Choice(name=item.name, value=item.value) for item in choices]
@@ -77,4 +88,43 @@ class StatTransformer(commands.Converter[str], Transformer):
         return await self.process(argument)
 
 
+class KindTransformer(commands.Converter[Kind], Transformer):
+    async def process(self, argument: str) -> Kind:
+        if argument and (
+            item := process.extractOne(
+                argument.title(),
+                Kind,
+                score_cutoff=85,
+                processor=lambda x: x.name if isinstance(x, Kind) else x,
+            )
+        ):
+            return item[0]
+
+        raise commands.BadArgument(f"Invalid kind string: {argument}")
+
+    async def transform(self, _: Interaction[Client], argument: str) -> Kind:
+        return await self.process(argument)
+
+    async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[int]]:
+        choices = (
+            Kind
+            if not value
+            else (
+                x
+                for x, _, _ in process.extract(
+                    value.title(),
+                    Kind,
+                    limit=25,
+                    score_cutoff=50,
+                    processor=lambda x: x.name if isinstance(x, Kind) else x,
+                )
+            )
+        )
+        return [Choice(name=item.name, value=item.value) for item in choices]
+
+    async def convert(self, _: commands.Context[Client], argument: str) -> Kind:
+        return await self.process(argument)
+
+
 StatArg = Transform[str, StatTransformer]
+KindArg = Transform[Kind, KindTransformer]

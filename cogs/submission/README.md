@@ -9,3 +9,4 @@
 | ----------- | --------------------------------------------------------- |
 | `modals.py` | Current implementation of a modal for submission purposes |
 | `sheets.py` | SSEF's Character Templates                                |
+| `stats.py`  | Stat and kind enums                                       |
