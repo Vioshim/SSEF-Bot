@@ -85,7 +85,7 @@ class Submission(commands.Cog):
         elif ocs:
             embed = discord.Embed(title="Characters", color=ctx.author.color)
 
-            ocs.sort(key=lambda x: (x.user_id, x.name))
+            ocs.sort(key=lambda x: (x.user_id, x.oc_name))
             guild = ctx.guild or ctx.author.mutual_guilds[0]
 
             for k, v in groupby(ocs, lambda x: x.user_id):
@@ -254,7 +254,7 @@ class Submission(commands.Cog):
             query: str = query.lower()
             items.extend(x for x in ocs if query in x.display_name.lower())
 
-        items.sort(key=lambda x: (x.user_id, x.name))
+        items.sort(key=lambda x: (x.user_id, x.oc_name))
         guild = ctx.guild or ctx.author.mutual_guilds[0]
 
         for k, v in groupby(items, key=lambda x: x.user_id):
@@ -360,7 +360,7 @@ class Submission(commands.Cog):
             query = query.lower()
             items.extend(x for x in ocs if query in x.display_name.lower())
 
-        items.sort(key=lambda x: (x.user_id, x.name))
+        items.sort(key=lambda x: (x.user_id, x.oc_name))
 
         for k, v in groupby(items, lambda x: x.user_id):
             m = guild.get_member(k)
@@ -678,7 +678,7 @@ class Submission(commands.Cog):
                 }
             )
         ]
-        ocs.sort(key=lambda oc: oc.name)
+        ocs.sort(key=lambda oc: oc.oc_name)
         description = "\n".join(f"* {oc.display_name}" for oc in ocs) or "Doesn't have any characters."
 
         embed = discord.Embed(
@@ -707,7 +707,7 @@ class Submission(commands.Cog):
                 }
             )
         ]
-        ocs.sort(key=lambda oc: oc.name)
+        ocs.sort(key=lambda oc: oc.oc_name)
         description = "\n".join(f"* {oc.display_name}" for oc in ocs) or "Doesn't have any characters."
 
         embed = discord.Embed(

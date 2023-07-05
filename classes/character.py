@@ -185,7 +185,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         key = {"user_id": author.id}
 
         ocs = [Character(**oc) async for oc in db.find(key)]
-        ocs.sort(key=lambda x: x.name)
+        ocs.sort(key=lambda x: x.oc_name)
 
         items = [x for x in ocs if value.lower() in x.display_name.lower()] if value else ocs
         return [Choice(name=item.display_name, value=str(item._id)) for item in items[:25]]
