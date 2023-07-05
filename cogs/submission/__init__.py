@@ -455,25 +455,12 @@ class Submission(commands.Cog):
         modal = UpdateCharacterModal(oc)
         await itx.response.send_modal(modal)
 
-    @char.command()
-    async def stats(
+    async def stats_handler(
         self,
         ctx: commands.Context[Client],
-        level: commands.Range[float, 1.0],
+        points: float = 0.0,
         stats: Optional[StatArg] = None,
     ):
-        """Calculate stats for a character
-
-        Parameters
-        ----------
-        ctx : commands.Context
-            Context of the command
-        level : commands.Range[float, 1.0]
-            Level of the character
-        stats : Stats
-            Stats of the character (default: 1 1 1 1 1 1)
-        """
-        points = level * 20 + 42
         embed = discord.Embed(title=f"Total Points = {points}")
 
         try:
@@ -505,6 +492,50 @@ class Submission(commands.Cog):
             embed.clear_fields()
 
         await ctx.reply(embed=embed, ephemeral=True)
+
+    @char.command()
+    async def stats(
+        self,
+        ctx: commands.Context[Client],
+        level: commands.Range[float, 1.0],
+        *,
+        stats: Optional[StatArg] = None,
+    ):
+        """Calculate stats for a character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        level : commands.Range[float, 1.0]
+            Level of the character
+        stats : Stats
+            Stats of the character (default: 1 1 1 1 1 1)
+        """
+        points = 20 * level + 42
+        await self.stats_handler(ctx, points=points, stats=stats)
+
+    @char.command(with_app_command=False)
+    async def lstats(
+        self,
+        ctx: commands.Context[Client],
+        level: commands.Range[float, 1.0],
+        *,
+        stats: Optional[StatArg] = None,
+    ):
+        """Calculate stats for a legenday character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        level : commands.Range[float, 1.0]
+            Level of the character
+        stats : Stats
+            Stats of the character (default: 1 1 1 1 1 1)
+        """
+        points = 25 * level + 42
+        await self.stats_handler(ctx, points=points, stats=stats)
 
     @char.group(invoke_without_command=True, aliases=["update"])
     async def edit(

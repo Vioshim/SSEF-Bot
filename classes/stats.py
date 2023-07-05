@@ -36,11 +36,13 @@ class Stats(StrEnum):
 
 class StatTransformer(commands.Converter[str], Transformer):
     async def process(self, argument: str) -> str:
-        if item := process.extractOne(
-            argument,
-            Stats,
-            score_cutoff=85,
-            processor=lambda x: x.name if isinstance(x, Stats) else x,
+        if argument and (
+            item := process.extractOne(
+                argument,
+                Stats,
+                score_cutoff=85,
+                processor=lambda x: x.name if isinstance(x, Stats) else x,
+            )
         ):
             return item[0].value
 
@@ -59,20 +61,16 @@ class StatTransformer(commands.Converter[str], Transformer):
         return await self.process(argument)
 
     async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
-        if not value:
-            choices = Stats
-        else:
-            choices = [
-                x
-                for x, _, _ in process.extract(
-                    value,
-                    Stats,
-                    limit=25,
-                    score_cutoff=50,
-                    processor=lambda x: x.name if isinstance(x, Stats) else x,
-                )
-            ]
-
+        choices = Stats if not value else (
+            x
+            for x, _, _ in process.extract(
+                value,
+                Stats,
+                limit=25,
+                score_cutoff=50,
+                processor=lambda x: x.name if isinstance(x, Stats) else x,
+            )
+        )
         return [Choice(name=item.name, value=item.value) for item in choices]
 
     async def convert(self, _: commands.Context[Client], argument: str):
