@@ -14,7 +14,7 @@
 
 
 from itertools import groupby
-from typing import Optional
+from typing import Optional, Literal
 
 import discord
 from discord import app_commands
@@ -498,6 +498,7 @@ class Submission(commands.Cog):
         self,
         ctx: commands.Context[Client],
         level: commands.Range[float, 1.0],
+        kind: Literal["basic", "evolved", "legendary"] = "evolved",
         *,
         stats: Optional[StatArg] = None,
     ):
@@ -509,32 +510,13 @@ class Submission(commands.Cog):
             Context of the command
         level : commands.Range[float, 1.0]
             Level of the character
+        kind : Literal["non-evolved", "evolved", "legendary"]
+            Kind of the character (default: evolved)
         stats : Stats
             Stats of the character (default: 1 1 1 1 1 1)
         """
-        points = 20 * level + 42
-        await self.stats_handler(ctx, points=points, stats=stats)
-
-    @char.command(with_app_command=False)
-    async def lstats(
-        self,
-        ctx: commands.Context[Client],
-        level: commands.Range[float, 1.0],
-        *,
-        stats: Optional[StatArg] = None,
-    ):
-        """Calculate stats for a legenday character
-
-        Parameters
-        ----------
-        ctx : commands.Context
-            Context of the command
-        level : commands.Range[float, 1.0]
-            Level of the character
-        stats : Stats
-            Stats of the character (default: 1 1 1 1 1 1)
-        """
-        points = 25 * level + 42
+        base = dict(basic=11, evolved=20, legendary=25)
+        points = base[kind] * level + 42
         await self.stats_handler(ctx, points=points, stats=stats)
 
     @char.group(invoke_without_command=True, aliases=["update"])
