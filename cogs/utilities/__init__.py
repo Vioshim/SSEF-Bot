@@ -51,7 +51,7 @@ class Utilities(commands.Cog):
             color=ctx.author.color,
         )
 
-        if len(embed.title) > 256:
+        if embed.title and len(embed.title) > 256:
             embed.title = "Rolling Expression"
 
         embed.set_image(url="https://dummyimage.com/500x5/FFFFFF/000000&text=%20")

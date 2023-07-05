@@ -22,7 +22,7 @@ from discord.ext import commands
 from discord.utils import escape_mentions, remove_markdown
 from rapidfuzz import process
 
-from classes.stats import Stats
+from classes.stats import StatArg
 from classes.character import Character, CharacterArg
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
@@ -460,7 +460,7 @@ class Submission(commands.Cog):
         self,
         ctx: commands.Context[Client],
         level: commands.Range[float, 1.0],
-        stats: Stats = "1 1 1 1 1 1",
+        stats: Optional[StatArg] = None,
     ):
         """Calculate stats for a character
 
@@ -470,10 +470,9 @@ class Submission(commands.Cog):
             Context of the command
         level : commands.Range[float, 1.0]
             Level of the character
-        stats : Stats | str
+        stats : Stats
             Stats of the character (default: 1 1 1 1 1 1)
         """
-
         points = level * 20 + 42
         embed = discord.Embed(title=f"Total Points = {points}")
 
@@ -489,15 +488,15 @@ class Submission(commands.Cog):
                         "Sp. Defense",
                         "Speed",
                     ],
-                    str(stats).split(),
+                    str(stats or "1 1 1 1 1 1").split(),
                     strict=True,
                 )
             }
-            total_stat = sum(values.values())
 
+            total_stat = sum(values.values())
             for stat, value in values.items():
                 perc = value / total_stat
-                embed.add_field(name=f"{stat}: {perc:.2%}", value=round(perc * points))
+                embed.add_field(name=f"{perc:.2%} | {stat}", value=round(perc * points, 2))
 
             embed.set_footer(text="These stats are averages for a character of this level.")
 
