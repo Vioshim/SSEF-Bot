@@ -479,7 +479,7 @@ class Submission(commands.Cog):
         """
         points = kind.value * level + 42
 
-        embed = discord.Embed(title=f"Total Points = {points}")
+        embed = discord.Embed(title=f"Total Points = {points:,.2f}".replace(",", "\u2009"))
         embed.set_author(name=f"Using {kind.name} which has {kind.value} points per level")
 
         try:
@@ -502,7 +502,10 @@ class Submission(commands.Cog):
             total_stat = sum(values.values())
             for stat, value in values.items():
                 perc = value / total_stat
-                embed.add_field(name=f"{perc:.2%} | {stat}", value=round(perc * points, 2))
+                embed.add_field(
+                    name=f"{perc:.2%} | {stat}",
+                    value=f"{perc * points:,.2f}".replace(",", "\u2009"),
+                )
 
             embed.set_footer(text="These stats are averages for a character of this level.")
 

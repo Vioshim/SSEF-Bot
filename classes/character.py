@@ -91,7 +91,8 @@ class Character:
             mon = "Unknown"
 
         lvl = int(lvl[1]) if (lvl := LM.search(desc)) else 0
-        return remove_markdown(f"{lvl:03d}〙{name}《{mon.strip()}》")
+        lvl = f"{lvl:,}".replace(",", "\u2009")
+        return remove_markdown(f"{lvl.zfill(3)}〙{name}《{mon.strip()}》")
 
     @classmethod
     async def converter(cls, ctx: commands.Context[Client] | Interaction[Client], argument: str):
