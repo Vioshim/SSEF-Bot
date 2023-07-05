@@ -460,7 +460,7 @@ class Submission(commands.Cog):
         self,
         ctx: commands.Context[Client],
         level: commands.Range[float, 1.0],
-        stats: Stats | str = "1 1 1 1 1 1",
+        stats: Stats = "1 1 1 1 1 1",
     ):
         """Calculate stats for a character
 
