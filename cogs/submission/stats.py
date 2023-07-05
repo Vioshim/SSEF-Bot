@@ -32,6 +32,7 @@ class Stats(StrEnum):
     Leafeon = "65 110 130 60 65 95"
     Glaceon = "65 60 110 130 95 65"
     Sylveon = "95 65 65 110 130 60"
+    Braixen = "59 59 58 90 70 73"
 
 
 class Kind(IntEnum):
@@ -105,7 +106,7 @@ class KindTransformer(commands.Converter[Kind], Transformer):
     async def transform(self, _: Interaction[Client], argument: str) -> Kind:
         return await self.process(argument)
 
-    async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[int]]:
+    async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
         choices = (
             Kind
             if not value
@@ -120,7 +121,7 @@ class KindTransformer(commands.Converter[Kind], Transformer):
                 )
             )
         )
-        return [Choice(name=item.name, value=item.value) for item in choices]
+        return [Choice(name=item.name, value=item.name) for item in choices]
 
     async def convert(self, _: commands.Context[Client], argument: str) -> Kind:
         return await self.process(argument)
