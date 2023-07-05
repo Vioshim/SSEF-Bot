@@ -27,7 +27,7 @@ from rapidfuzz import process
 
 from classes.client import Client
 
-matchers = (
+NM, SM, LM = (
     re.compile(r"Name\s*:\s*(.+)", re.IGNORECASE),
     re.compile(r"Species\s*:\s*(.+)", re.IGNORECASE),
     re.compile(r"Level\s*:\s*(\d+)", re.IGNORECASE),
@@ -68,7 +68,7 @@ class Character:
     @property
     def oc_name(self):
         desc = remove_markdown(self.description)
-        name = name[1].strip() if (name := matchers[0].search(desc)) else self.name
+        name = name[1].strip() if (name := NM.search(desc)) else self.name
         name, *_ = name.split(".")
         name, *_ = name.split(",")
         return remove_markdown(name)
@@ -76,13 +76,12 @@ class Character:
     @property
     def display_name(self):
         desc = remove_markdown(self.description)
-        nm, mm, lm = matchers
-        name = name[1] if (name := nm.search(desc)) else self.name
+        name = name[1] if (name := NM.search(desc)) else self.name
 
         if len(name) > 20:
             name = f"{name[:20]}..."
 
-        if mon := mm.search(desc):
+        if mon := SM.search(desc):
             mon = mon[1].strip()
             mon, *_ = mon.split(".")
             mon, *_ = mon.split(",")
@@ -91,7 +90,7 @@ class Character:
         else:
             mon = "Unknown"
 
-        lvl = int(lvl[1]) if (lvl := lm.search(desc)) else 0
+        lvl = int(lvl[1]) if (lvl := LM.search(desc)) else 0
         return remove_markdown(f"{lvl:03d}〙{name}《{mon.strip()}》")
 
     @classmethod
