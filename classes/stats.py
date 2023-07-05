@@ -38,7 +38,7 @@ class StatTransformer(commands.Converter[str], Transformer):
     async def process(self, argument: str) -> str:
         if argument and (
             item := process.extractOne(
-                argument,
+                argument.title(),
                 Stats,
                 score_cutoff=85,
                 processor=lambda x: x.name if isinstance(x, Stats) else x,
@@ -64,7 +64,7 @@ class StatTransformer(commands.Converter[str], Transformer):
         choices = Stats if not value else (
             x
             for x, _, _ in process.extract(
-                value,
+                value.title(),
                 Stats,
                 limit=25,
                 score_cutoff=50,
