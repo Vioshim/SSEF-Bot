@@ -274,7 +274,7 @@ class Submission(commands.Cog):
     async def find(
         self,
         ctx: commands.Context[Client],
-        author: Optional[discord.Member | discord.User] = None,
+        author: discord.Member | discord.User = commands.Author,
         *,
         query: Optional[str] = None,
     ):
@@ -292,9 +292,7 @@ class Submission(commands.Cog):
         if not query:
             return await ctx.invoke(self.list, user=author)
 
-        author = author or ctx.author
-        key = {"user_id": author.id} if author else {}
-        ocs = [Character(**oc) async for oc in self.db.find(key)]
+        ocs = [Character(**oc) async for oc in self.db.find({"user_id": author.id})]
         if result := process.extractOne(
             query,
             ocs,
