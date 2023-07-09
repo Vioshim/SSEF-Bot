@@ -67,7 +67,7 @@ class Submission(commands.Cog):
             oc = None
 
         if oc is None:
-            ocs = [Character(**oc) async for oc in self.db.find({}) if ctx.guild and ctx.guild.get_member(oc["user_id"])]
+            ocs = [Character(**oc) async for oc in self.db.find({"server": ctx.guild.id}) if ctx.guild.get_member(oc["user_id"])]
             if result := process.extractOne(
                 text,
                 ocs,
@@ -112,6 +112,12 @@ class Submission(commands.Cog):
         sheet : Sheet
             Sheet template to use
         """
+        if not itx.guild:
+            return await itx.response.send_message(
+                "You can only create characters in servers.",
+                ephemeral=True,
+            )
+
         modal = CreateCharacterModal(timeout=None)
         modal.desc.default = sheet.template
         await itx.response.send_modal(modal)
@@ -135,6 +141,12 @@ class Submission(commands.Cog):
         description : str
             Description of the character
         """
+        if not ctx.guild:
+            return await ctx.reply(
+                "You can only create characters in servers.",
+                ephemeral=True,
+            )
+
         if ctx.message and ctx.message.mentions:
             return await ctx.reply(
                 "Do not mention users when creating a character.",
@@ -238,7 +250,7 @@ class Submission(commands.Cog):
             Query to search for, by default ""
         """
         embed = discord.Embed(title="Characters", color=ctx.author.color)
-        ocs = [Character(**oc) async for oc in self.db.find({}) if ctx.guild and ctx.guild.get_member(oc["user_id"])]
+        ocs = [Character(**oc) async for oc in self.db.find({"server": ctx.guild.id}) if ctx.guild and ctx.guild.get_member(oc["user_id"])]
         items = [
             x
             for x, _, _ in process.extract(
@@ -290,7 +302,7 @@ class Submission(commands.Cog):
         if not query:
             return await ctx.invoke(self.list, user=author)
 
-        ocs = [Character(**oc) async for oc in self.db.find({"user_id": author.id})]
+        ocs = [Character(**oc) async for oc in self.db.find({"user_id": author.id, "server": ctx.guild.id})]
         if result := process.extractOne(
             query,
             ocs,
@@ -449,6 +461,12 @@ class Submission(commands.Cog):
         oc : Character
             Character
         """
+        if not itx.guild:
+            return await itx.response.send_message(
+                "This command can only be used in a server",
+                ephemeral=True,
+            )
+
         modal = UpdateCharacterModal(oc)
         await itx.response.send_modal(modal)
 
