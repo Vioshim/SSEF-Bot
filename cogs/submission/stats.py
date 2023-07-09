@@ -32,7 +32,6 @@ class Stats(StrEnum):
     Leafeon = "65 110 130 60 65 95"
     Glaceon = "65 60 110 130 95 65"
     Sylveon = "95 65 65 110 130 60"
-    Braixen = "59 59 58 90 70 73"
 
 
 class Kind(IntEnum):

@@ -74,6 +74,7 @@ class CreateCharacterModal(Modal, title="Create Character"):
                 "name": name,
                 "description": desc,
                 "user_id": interaction.user.id,
+                "server": interaction.guild_id,
             }
         )
         oc = Character(
@@ -81,6 +82,7 @@ class CreateCharacterModal(Modal, title="Create Character"):
             user_id=interaction.user.id,
             name=name,
             description=desc,
+            server=interaction.guild_id or 0,
         )
 
         await interaction.response.defer(thinking=True, ephemeral=False)
@@ -133,7 +135,7 @@ class UpdateCharacterModal(Modal, title="Update Character"):
 
         db = interaction.client.db("Characters")
         await db.update_one(
-            {"_id": oc._id},
+            {"_id": oc._id, "server": interaction.guild_id},
             {"$set": {"name": name, "description": desc}},
         )
         await interaction.response.defer(thinking=True, ephemeral=False)

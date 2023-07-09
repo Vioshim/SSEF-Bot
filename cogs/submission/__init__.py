@@ -44,6 +44,7 @@ class Submission(commands.Cog):
     async def cog_unload(self) -> None:
         self.bot.tree.remove_command(self.itx_menu1.name, type=self.itx_menu1.type)
 
+    @commands.guild_only()
     @commands.hybrid_group(
         aliases=["oc", "character"],
         invoke_without_command=True,
@@ -66,9 +67,7 @@ class Submission(commands.Cog):
             oc = None
 
         if oc is None:
-            guild = ctx.guild or ctx.author.mutual_guilds[0]
-            ocs = [Character(**oc) async for oc in self.db.find({}) if guild.get_member(oc["user_id"])]
-
+            ocs = [Character(**oc) async for oc in self.db.find({}) if ctx.guild and ctx.guild.get_member(oc["user_id"])]
             if result := process.extractOne(
                 text,
                 ocs,
@@ -86,10 +85,9 @@ class Submission(commands.Cog):
             embed = discord.Embed(title="Characters", color=ctx.author.color)
 
             ocs.sort(key=lambda x: (x.user_id, x.oc_name))
-            guild = ctx.guild or ctx.author.mutual_guilds[0]
 
             for k, v in groupby(ocs, lambda x: x.user_id):
-                m = guild.get_member(k)
+                m = ctx.guild and ctx.guild.get_member(k)
                 if m and len(embed.fields) < 25:
                     embed.add_field(
                         name=str(m),
@@ -166,6 +164,7 @@ class Submission(commands.Cog):
                         "name": name.strip(),
                         "description": description.strip(),
                         "user_id": ctx.author.id,
+                        "server": ctx.guild.id if ctx.guild else None,
                     }
                 )
                 await ctx.reply(f"Created {name!r}", ephemeral=True)
@@ -178,6 +177,7 @@ class Submission(commands.Cog):
         else:
             await ctx.reply("You must provide a name and description.", ephemeral=True)
 
+    @commands.guild_only()
     @commands.command()
     async def addchar(
         self,
@@ -238,8 +238,7 @@ class Submission(commands.Cog):
             Query to search for, by default ""
         """
         embed = discord.Embed(title="Characters", color=ctx.author.color)
-        guild = ctx.guild or ctx.author.mutual_guilds[0]
-        ocs = [Character(**oc) async for oc in self.db.find({}) if guild.get_member(oc["user_id"])]
+        ocs = [Character(**oc) async for oc in self.db.find({}) if ctx.guild and ctx.guild.get_member(oc["user_id"])]
         items = [
             x
             for x, _, _ in process.extract(
@@ -255,10 +254,9 @@ class Submission(commands.Cog):
             items.extend(x for x in ocs if query in x.display_name.lower())
 
         items.sort(key=lambda x: (x.user_id, x.oc_name))
-        guild = ctx.guild or ctx.author.mutual_guilds[0]
 
         for k, v in groupby(items, key=lambda x: x.user_id):
-            m = guild.get_member(k)
+            m = ctx.guild and ctx.guild.get_member(k)
             if m and len(embed.fields) < 25:
                 embed.add_field(
                     name=str(m),
@@ -333,16 +331,15 @@ class Submission(commands.Cog):
             return
 
         embed = discord.Embed(title="Characters")
+        key = {"server": itx.guild_id}
         if author is None:
-            key = {}
             embed.color = itx.user.color
         else:
-            key = {"user_id": author.id}
+            key["user_id"] = author.id
             embed.color = author.color
             embed.set_author(name=author.display_name, icon_url=author.display_avatar)
 
-        guild = itx.guild or itx.user.mutual_guilds[0]
-        ocs = [Character(**oc) async for oc in self.db.find(key) if guild.get_member(oc["user_id"])]
+        ocs = [Character(**oc) async for oc in self.db.find(key) if itx.guild and itx.guild.get_member(oc["user_id"])]
         query = remove_markdown(query)
         items = [
             x
@@ -361,7 +358,7 @@ class Submission(commands.Cog):
         items.sort(key=lambda x: (x.user_id, x.oc_name))
 
         for k, v in groupby(items, lambda x: x.user_id):
-            m = guild.get_member(k)
+            m = itx.guild and itx.guild.get_member(k)
             if m and len(embed.fields) < 25:
                 embed.add_field(
                     name=str(m),
@@ -381,7 +378,7 @@ class Submission(commands.Cog):
         oc: Character
             Character to delete
         """
-        await self.db.delete_one({"_id": oc._id, "user_id": ctx.author.id})
+        await self.db.delete_one({"_id": oc._id, "user_id": ctx.author.id, "server": ctx.guild and ctx.guild.id})
         await ctx.reply(embed=oc.embed)
 
     @commands.command(aliases=["deletechar", "removechar"])
@@ -408,15 +405,16 @@ class Submission(commands.Cog):
         ocs: Character
             Characters to delete
         """
-        ocs = set(ocs)
+        oc_ids = {x._id for x in ocs}
 
-        if not ocs:
+        if not oc_ids:
             return await ctx.reply("No characters provided", ephemeral=True)
 
         await self.db.delete_many(
             {
-                "_id": {"$in": [oc._id for oc in ocs]},
+                "_id": {"$in": list(oc_ids)},
                 "user_id": ctx.author.id,
+                "server": ctx.guild and ctx.guild.id,
             }
         )
         await ctx.reply(
@@ -426,6 +424,7 @@ class Submission(commands.Cog):
             ),
         )
 
+    @commands.guild_only()
     @commands.command(aliases=["deletechars", "removechars"])
     async def delchars(self, ctx: commands.Context[Client], *ocs: CharacterArg):
         """Delete many characters
@@ -559,12 +558,13 @@ class Submission(commands.Cog):
             return await ctx.reply("Name must be less than 256 characters.")
 
         await self.db.update_one(
-            {"_id": oc._id, "user_id": ctx.author.id},
+            {"_id": oc._id, "user_id": ctx.author.id, "server": ctx.guild and ctx.guild.id},
             {"$set": {"name": name}},
             upsert=True,
         )
         await ctx.reply(f"Changed {oc.name!r} to {name!r}", ephemeral=True)
 
+    @commands.guild_only()
     @commands.command(aliases=["editname", "rename"])
     async def renamechar(
         self,
@@ -610,11 +610,12 @@ class Submission(commands.Cog):
             return await ctx.reply("You can't set the same description.", ephemeral=True)
 
         await self.db.update_one(
-            {"_id": oc._id, "user_id": ctx.author.id},
+            {"_id": oc._id, "user_id": ctx.author.id, "server": ctx.guild and ctx.guild.id},
             {"$set": {"description": description}},
         )
         await ctx.reply(f"Changed description of {oc.name!r}", ephemeral=True)
 
+    @commands.guild_only()
     @commands.command()
     async def editchar(
         self,
@@ -636,6 +637,7 @@ class Submission(commands.Cog):
         """
         await ctx.invoke(self.description, oc=oc, description=description)
 
+    @commands.guild_only()
     @commands.command(aliases=["list"])
     async def listchar(
         self,
@@ -673,6 +675,7 @@ class Submission(commands.Cog):
             async for oc in self.db.find(
                 {
                     "user_id": user.id,
+                    "server": ctx.guild and ctx.guild.id,
                 }
             )
         ]
@@ -702,6 +705,7 @@ class Submission(commands.Cog):
             async for oc in self.db.find(
                 {
                     "user_id": member.id,
+                    "server": itx.guild_id,
                 }
             )
         ]

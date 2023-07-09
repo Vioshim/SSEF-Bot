@@ -48,7 +48,7 @@ class Information(commands.Cog):
             Context
         """
         name: str = ctx.guild.name if ctx.guild else "Private Message"
-        self.bot.log.info("%s > %s > %s", name, ctx.author, ctx.command.qualified_name)
+        self.bot.log.info("%s > %s > %s", name, ctx.author, ctx.command and ctx.command.qualified_name or "Unknown")
 
     async def on_error(
         self,
@@ -100,6 +100,8 @@ class Information(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             return
 
+        qualid_name = ctx.command and ctx.command.qualified_name or "Unknown"
+
         if isinstance(
             error,
             (
@@ -113,7 +115,7 @@ class Information(commands.Cog):
             await ctx.send(
                 embed=discord.Embed(
                     color=discord.Colour.red(),
-                    title=f"Error - {ctx.command.qualified_name}",
+                    title=f"Error - {qualid_name}",
                     description=str(error),
                 )
             )
@@ -130,14 +132,14 @@ class Information(commands.Cog):
         await ctx.send(
             embed=discord.Embed(
                 color=discord.Colour.red(),
-                title=f"Unexpected error - {ctx.command.qualified_name}",
+                title=f"Unexpected error - {qualid_name}",
                 description=f"```py\n{type(error_cause).__name__}: {error_cause}\n```",
             )
         )
 
         self.bot.log.error(
             "Command Error(%s, %s)",
-            ctx.command.qualified_name,
+            qualid_name,
             ", ".join(f"{k}={v!r}" for k, v in ctx.kwargs.items()),
             exc_info=error,
         )

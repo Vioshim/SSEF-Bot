@@ -40,6 +40,7 @@ class Character:
     user_id: int
     name: str
     description: str
+    server: int = 638802665467543572
 
     def __hash__(self) -> int:
         return hash(self._id)
@@ -117,17 +118,18 @@ class Character:
             db = ctx.bot.db("Characters")
             user = ctx.author
 
-        key = {"user_id": user.id}
+        key = {"user_id": user.id, "server": ctx.guild and ctx.guild.id}
+        data = {}
 
         try:
-            key["_id"] = ObjectId(argument)
+            data["_id"] = ObjectId(argument)
         except Exception:
-            key["name"] = remove_markdown(argument)
+            data["name"] = remove_markdown(argument)
 
-        if result := await db.find_one(key):
+        if result := await db.find_one(key | data):
             return cls(**result)
 
-        ocs = [cls(**oc) async for oc in db.find({"user_id": user.id})]
+        ocs = [cls(**oc) async for oc in db.find(key)]
 
         if not ocs:
             raise commands.BadArgument("You have no characters")
@@ -148,17 +150,18 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         db = interaction.client.db("Characters")
 
         author = interaction.namespace.author or interaction.user
-        key = {"user_id": author.id}
+        key = {"user_id": author.id, "server": interaction.guild_id}
+        data = {}
 
         try:
-            key["_id"] = ObjectId(argument)
+            data["_id"] = ObjectId(argument)
         except Exception:
-            key["name"] = remove_markdown(argument)
+            data["name"] = remove_markdown(argument)
 
-        if result := await db.find_one(key):
+        if result := await db.find_one(key | data):
             return Character(**result)
 
-        ocs = [Character(**oc) async for oc in db.find({"user_id": key["user_id"]})]
+        ocs = [Character(**oc) async for oc in db.find(key)]
 
         if not ocs:
             raise commands.BadArgument("You have no characters")
@@ -182,7 +185,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         db = interaction.client.db("Characters")
 
         author = interaction.namespace.author or interaction.user
-        key = {"user_id": author.id}
+        key = {"user_id": author.id, "server": interaction.guild_id}
 
         ocs = [Character(**oc) async for oc in db.find(key)]
         ocs.sort(key=lambda x: x.oc_name)
