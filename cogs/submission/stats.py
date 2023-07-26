@@ -110,6 +110,14 @@ class StatTransformer(commands.Converter[str], Transformer):
 
 class SizeTransformer(commands.Converter[float], Transformer):
     async def process(self, argument: str) -> float:
+        if argument and (
+            item := process.extractOne(
+                argument.title(),
+                choices=SIZES.keys(),
+                score_cutoff=90,
+            )
+        ):
+            return SIZES[item[0]]
         try:
             return sum(item.value * ureg(item.unit.name).to(ureg.meters).magnitude for item in parse(argument))
         except (ValueError, pint.UndefinedUnitError, AttributeError):
