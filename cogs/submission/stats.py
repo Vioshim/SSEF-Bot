@@ -110,16 +110,13 @@ class SizeTransformer(commands.Converter[str], Transformer):
         if argument and (
             item := process.extractOne(
                 argument.title(),
-                SIZES,
+                choices=SIZES.keys(),
                 score_cutoff=85,
             )
         ):
             return str(SIZES[item[0]])
 
         try:
-            if argument.lower().endswith("m"):
-                return str(float(argument[:-1]))
-
             if data := re.match(r"(\d+)\s*\'\s*(\d+)\s*\"", argument):
                 feet = int(data[1])
                 inches = int(data[2])
@@ -134,8 +131,7 @@ class SizeTransformer(commands.Converter[str], Transformer):
                 feet = int(data[1])
                 return str(feet * 0.3048)
 
-            data = data[1] if (data := re.match(r"(\d+)", argument)) else argument
-            return str(float(data))
+            return str(float(argument.lower().removesuffix("m")))
         except ValueError:
             raise commands.BadArgument(f"Invalid measurement: {argument}")
 
@@ -150,7 +146,7 @@ class SizeTransformer(commands.Converter[str], Transformer):
                 x
                 for x, _, _ in process.extract(
                     value.title(),
-                    SIZES,
+                    choices=SIZES.keys(),
                     limit=25,
                     score_cutoff=50,
                 )
