@@ -556,7 +556,7 @@ class Submission(commands.Cog):
         multiplier : float
             Multiplier of the size (default: 1.0)
         """
-        value = float(size) * multiplier
+        value = size * multiplier
         feet, inches = divmod(value * 3.28084, 1)
         inches *= 12
         await ctx.reply(

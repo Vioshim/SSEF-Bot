@@ -105,8 +105,8 @@ class StatTransformer(commands.Converter[str], Transformer):
         return await self.process(argument)
 
 
-class SizeTransformer(commands.Converter[str], Transformer):
-    async def process(self, argument: str) -> str:
+class SizeTransformer(commands.Converter[float], Transformer):
+    async def process(self, argument: str) -> float:
         if argument and (
             item := process.extractOne(
                 argument.title(),
@@ -114,28 +114,28 @@ class SizeTransformer(commands.Converter[str], Transformer):
                 score_cutoff=85,
             )
         ):
-            return str(SIZES[item[0]])
+            return SIZES[item[0]]
 
         try:
             if data := re.match(r"(\d+)\s*\'\s*(\d+)\s*\"", argument):
                 feet = int(data[1])
                 inches = int(data[2])
                 total_inches = feet * 12 + inches
-                return str(total_inches * 0.0254)
+                return total_inches * 0.0254
 
             if data := re.match(r"(\d+)\s*\"", argument):
                 inches = int(data[1])
-                return str(inches * 0.0254)
+                return inches * 0.0254
 
             if data := re.match(r"(\d+)\s*\'", argument):
                 feet = int(data[1])
-                return str(feet * 0.3048)
+                return feet * 0.3048
 
-            return str(float(argument.lower().removesuffix("m")))
+            return float(argument.lower().removesuffix("m").strip())
         except ValueError:
             raise commands.BadArgument(f"Invalid measurement: {argument}")
 
-    async def transform(self, _: Interaction[Client], argument: str) -> str:
+    async def transform(self, _: Interaction[Client], argument: str) -> float:
         return await self.process(argument)
 
     async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
@@ -198,4 +198,4 @@ class KindTransformer(commands.Converter[Kind], Transformer):
 
 StatArg = Transform[str, StatTransformer]
 KindArg = Transform[Kind, KindTransformer]
-SizeArg = Transform[str, SizeTransformer]
+SizeArg = Transform[float, SizeTransformer]
