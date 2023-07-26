@@ -557,12 +557,12 @@ class Submission(commands.Cog):
             Multiplier of the size (default: 1.0)
         """
         value = size * multiplier
-        feet, inches = int(value / 0.3048), int(value / 0.3048 % 1 * 12)
+        feet, inches = int(value / 0.3048), (value / 0.3048 % 1 * 12)
         await ctx.reply(
             content="\n".join(
                 [
                     f"* {value:.2f} **m**",
-                    f"* {feet} **ft**, {inches} **in**",
+                    f"* {feet} **ft**, {inches:.2f} **in**",
                 ]
             ),
             ephemeral=True,
