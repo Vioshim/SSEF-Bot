@@ -137,7 +137,7 @@ class SizeTransformer(commands.Converter[float], Transformer):
             if data := re.match(r"(\d+)\s*m", argument, re.IGNORECASE):
                 return int(data[1])
 
-            return float(argument.lower().removesuffix("m").strip())
+            return float(argument)
         except ValueError:
             raise commands.BadArgument(f"Invalid measurement: {argument}")
 
