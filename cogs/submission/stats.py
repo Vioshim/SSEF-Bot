@@ -108,7 +108,7 @@ class StatTransformer(commands.Converter[str], Transformer):
         return await self.process(argument)
 
 
-class SizeTransformer(commands.Converter[float]):
+class SizeTransformer(commands.Converter[float], Transformer):
     async def process(self, argument: str) -> float:
         try:
             return sum(item.value * ureg(item.unit.name).to(ureg.meters).magnitude for item in parse(argument))
