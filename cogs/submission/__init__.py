@@ -26,7 +26,7 @@ from classes.character import Character, CharacterArg
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
 from cogs.submission.sheets import Sheet
-from cogs.submission.stats import Kind, KindArg, SizeArg, StatArg
+from cogs.submission.stats import Kind, KindArg, SizeArg, StatArg, ureg
 
 
 class Submission(commands.Cog):
@@ -557,13 +557,14 @@ class Submission(commands.Cog):
         size : Size
             Size of the character (default: 1.0)
         """
-        value = size * multiplier
-        feet, inches = int(value / 0.3048), (value / 0.3048 % 1 * 12)
+        value = round(max(size * multiplier, 0.01), 2)
+        feet, inches = value // 0.3048, value / 0.3048 % 1 * 12
+
         await ctx.reply(
             content="\n".join(
                 [
                     f"* {value:.2f} **m**",
-                    f"* {feet} **ft**, {inches:.2f} **in**",
+                    f"* {feet:.0f} **ft**, {inches:.2f} **in**",
                 ]
             ),
             ephemeral=True,
