@@ -131,6 +131,12 @@ class SizeTransformer(commands.Converter[float], Transformer):
                 feet = int(data[1])
                 return feet * 0.3048
 
+            if data := re.match(r"(\d+)\s*cm", argument, re.IGNORECASE):
+                return int(data[1]) / 100
+
+            if data := re.match(r"(\d+)\s*m", argument, re.IGNORECASE):
+                return int(data[1])
+
             return float(argument.lower().removesuffix("m").strip())
         except ValueError:
             raise commands.BadArgument(f"Invalid measurement: {argument}")
