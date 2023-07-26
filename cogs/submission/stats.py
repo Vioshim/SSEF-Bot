@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import re
-from enum import IntEnum, ReprEnum, StrEnum
+from enum import IntEnum, StrEnum
 
 from discord import Interaction
 from discord.app_commands import Choice, Transform, Transformer
@@ -45,16 +45,17 @@ class Kind(IntEnum):
     Legendary = 25
 
 
-class Sizes(float, ReprEnum):
-    Eevee = 0.3
-    Vaporeon = 1.0
-    Jolteon = 0.8
-    Flareon = 0.9
-    Espeon = 0.9
-    Umbreon = 1.0
-    Leafeon = 1.0
-    Glaceon = 0.8
-    Sylveon = 1.0
+SIZES = dict(
+    Eevee=0.3,
+    Vaporeon=1.0,
+    Jolteon=0.8,
+    Flareon=0.9,
+    Espeon=0.9,
+    Umbreon=1.0,
+    Leafeon=1.0,
+    Glaceon=0.8,
+    Sylveon=1.0,
+)
 
 
 class StatTransformer(commands.Converter[str], Transformer):
@@ -109,12 +110,11 @@ class SizeTransformer(commands.Converter[float], Transformer):
         if argument and (
             item := process.extractOne(
                 argument.title(),
-                Sizes,
+                SIZES,
                 score_cutoff=85,
-                processor=lambda x: x.name if isinstance(x, Sizes) else x,
             )
         ):
-            return item[0].value
+            return SIZES[item[0]]
 
         try:
             if argument.lower().endswith("m"):
@@ -147,20 +147,19 @@ class SizeTransformer(commands.Converter[float], Transformer):
 
     async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
         choices = (
-            Sizes
+            SIZES
             if not value
             else (
                 x
                 for x, _, _ in process.extract(
                     value.title(),
-                    Sizes,
+                    SIZES,
                     limit=25,
                     score_cutoff=50,
-                    processor=lambda x: x.name if isinstance(x, Sizes) else x,
                 )
             )
         )
-        return [Choice(name=item.name, value=item.name) for item in choices]
+        return [Choice(name=item, value=item) for item in choices]
 
     async def convert(self, _: commands.Context[Client], argument: str):
         return await self.process(argument)

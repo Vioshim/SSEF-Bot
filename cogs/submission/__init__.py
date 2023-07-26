@@ -543,7 +543,7 @@ class Submission(commands.Cog):
         self,
         ctx: commands.Context[Client],
         size: SizeArg,
-        multiplier: float,
+        multiplier: float = 1.0,
     ):
         """Calculate the size of a character
 
@@ -554,21 +554,20 @@ class Submission(commands.Cog):
         size : Size
             Size of the character
         multiplier : float
-            Multiplier of the size
+            Multiplier of the size (default: 1.0)
         """
-        feet, inches = divmod(size * multiplier * 3.28084, 1)
+        value = size * multiplier
+        feet, inches = divmod(value * 3.28084, 1)
         inches *= 12
-
-        embed = discord.Embed(
-            title="Character Size",
-            description="\n".join(
+        await ctx.reply(
+            content="\n".join(
                 [
-                    f"* {size:.2f}m * {multiplier:.2f} = {size * multiplier:.2f}m"
-                    f"* {feet:.0f}ft {inches:.0f}in"
+                    f"* {value:.2f}**m**",
+                    f"* {feet:.0f}**ft** {inches:.0f}**in**",
                 ]
             ),
+            ephemeral=True,
         )
-        await ctx.reply(embed=embed, ephemeral=True)
 
     @char.group(invoke_without_command=True, aliases=["update"])
     async def edit(
