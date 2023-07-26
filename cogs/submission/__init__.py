@@ -542,8 +542,9 @@ class Submission(commands.Cog):
     async def size(
         self,
         ctx: commands.Context[Client],
-        size: SizeArg,
         multiplier: float = 1.0,
+        *,
+        size: SizeArg = 1.0,
     ):
         """Calculate the size of a character
 
@@ -551,10 +552,10 @@ class Submission(commands.Cog):
         ----------
         ctx : commands.Context
             Context of the command
-        size : Size
-            Size of the character
         multiplier : float
             Multiplier of the size (default: 1.0)
+        size : Size
+            Size of the character (default: 1.0)
         """
         value = size * multiplier
         feet, inches = int(value / 0.3048), (value / 0.3048 % 1 * 12)

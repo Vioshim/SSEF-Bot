@@ -15,15 +15,18 @@
 
 from __future__ import annotations
 
-import re
 from enum import IntEnum, StrEnum
 
+import pint
 from discord import Interaction
 from discord.app_commands import Choice, Transform, Transformer
 from discord.ext import commands
+from quantulum3.parser import parse
 from rapidfuzz import process
 
 from classes.client import Client
+
+ureg = pint.UnitRegistry()
 
 
 class Stats(StrEnum):
@@ -105,40 +108,11 @@ class StatTransformer(commands.Converter[str], Transformer):
         return await self.process(argument)
 
 
-class SizeTransformer(commands.Converter[float], Transformer):
+class SizeTransformer(commands.Converter[float]):
     async def process(self, argument: str) -> float:
-        if argument and (
-            item := process.extractOne(
-                argument.title(),
-                choices=SIZES.keys(),
-                score_cutoff=85,
-            )
-        ):
-            return SIZES[item[0]]
-
         try:
-            if data := re.match(r"(\d+)\s*\'\s*(\d+)\s*\"", argument):
-                feet = int(data[1])
-                inches = int(data[2])
-                total_inches = feet * 12 + inches
-                return total_inches * 0.0254
-
-            if data := re.match(r"(\d+)\s*\"", argument):
-                inches = int(data[1])
-                return inches * 0.0254
-
-            if data := re.match(r"(\d+)\s*\'", argument):
-                feet = int(data[1])
-                return feet * 0.3048
-
-            if data := re.match(r"(\d+)\s*cm", argument, re.IGNORECASE):
-                return int(data[1]) / 100
-
-            if data := re.match(r"(\d+)\s*m", argument, re.IGNORECASE):
-                return int(data[1])
-
-            return float(argument)
-        except ValueError:
+            return sum(item.value * ureg(item.unit.name).to(ureg.meters).magnitude for item in parse(argument))
+        except (ValueError, pint.UndefinedUnitError, AttributeError):
             raise commands.BadArgument(f"Invalid measurement: {argument}")
 
     async def transform(self, _: Interaction[Client], argument: str) -> float:
