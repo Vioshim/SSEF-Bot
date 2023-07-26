@@ -562,8 +562,8 @@ class Submission(commands.Cog):
         await ctx.reply(
             content="\n".join(
                 [
-                    f"* {value:.2f}**m**",
-                    f"* {feet:.0f}**ft** {inches:.0f}**in**",
+                    f"* {value:.2f} **m**",
+                    f"* {feet:.0f} **ft**, {inches:.0f} **in**",
                 ]
             ),
             ephemeral=True,
