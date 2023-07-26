@@ -22,11 +22,11 @@ from discord.ext import commands
 from discord.utils import escape_mentions, remove_markdown
 from rapidfuzz import process
 
-from cogs.submission.stats import StatArg, KindArg, Kind
 from classes.character import Character, CharacterArg
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
 from cogs.submission.sheets import Sheet
+from cogs.submission.stats import Kind, KindArg, SizeArg, StatArg
 
 
 class Submission(commands.Cog):
@@ -67,7 +67,11 @@ class Submission(commands.Cog):
             oc = None
 
         if oc is None:
-            ocs = [Character(**oc) async for oc in self.db.find({"server": ctx.guild.id}) if ctx.guild.get_member(oc["user_id"])]
+            ocs = [
+                Character(**oc)
+                async for oc in self.db.find({"server": ctx.guild.id})
+                if ctx.guild.get_member(oc["user_id"])
+            ]
             if result := process.extractOne(
                 text,
                 ocs,
@@ -250,7 +254,11 @@ class Submission(commands.Cog):
             Query to search for, by default ""
         """
         embed = discord.Embed(title="Characters", color=ctx.author.color)
-        ocs = [Character(**oc) async for oc in self.db.find({"server": ctx.guild.id}) if ctx.guild and ctx.guild.get_member(oc["user_id"])]
+        ocs = [
+            Character(**oc)
+            async for oc in self.db.find({"server": ctx.guild.id})
+            if ctx.guild and ctx.guild.get_member(oc["user_id"])
+        ]
         items = [
             x
             for x, _, _ in process.extract(
@@ -528,6 +536,38 @@ class Submission(commands.Cog):
             embed.description = "Invalid stats"
             embed.clear_fields()
 
+        await ctx.reply(embed=embed, ephemeral=True)
+
+    @char.command()
+    async def size(
+        self,
+        ctx: commands.Context[Client],
+        size: SizeArg,
+        multiplier: float,
+    ):
+        """Calculate the size of a character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        size : Size
+            Size of the character
+        multiplier : float
+            Multiplier of the size
+        """
+        feet, inches = divmod(size * multiplier * 3.28084, 1)
+        inches *= 12
+
+        embed = discord.Embed(
+            title="Character Size",
+            description="\n".join(
+                [
+                    f"* {size:.2f}m * {multiplier:.2f} = {size * multiplier:.2f}m"
+                    f"* {feet:.0f}ft {inches:.0f}in"
+                ]
+            ),
+        )
         await ctx.reply(embed=embed, ephemeral=True)
 
     @char.group(invoke_without_command=True, aliases=["update"])

@@ -14,12 +14,16 @@
 
 
 from __future__ import annotations
-from enum import StrEnum, IntEnum
-from discord.ext import commands
+
+import re
+from enum import IntEnum, ReprEnum, StrEnum
+
 from discord import Interaction
 from discord.app_commands import Choice, Transform, Transformer
-from classes.client import Client
+from discord.ext import commands
 from rapidfuzz import process
+
+from classes.client import Client
 
 
 class Stats(StrEnum):
@@ -39,6 +43,18 @@ class Kind(IntEnum):
     Middle = 15
     Final = 20
     Legendary = 25
+
+
+class Sizes(float, ReprEnum):
+    Eevee = 0.3
+    Vaporeon = 1.0
+    Jolteon = 0.8
+    Flareon = 0.9
+    Espeon = 0.9
+    Umbreon = 1.0
+    Leafeon = 1.0
+    Glaceon = 0.8
+    Sylveon = 1.0
 
 
 class StatTransformer(commands.Converter[str], Transformer):
@@ -88,6 +104,68 @@ class StatTransformer(commands.Converter[str], Transformer):
         return await self.process(argument)
 
 
+class SizeTransformer(commands.Converter[float], Transformer):
+    async def process(self, argument: str) -> float:
+        if argument and (
+            item := process.extractOne(
+                argument.title(),
+                Sizes,
+                score_cutoff=85,
+                processor=lambda x: x.name if isinstance(x, Sizes) else x,
+            )
+        ):
+            return item[0].value
+
+        try:
+            if argument.lower().endswith("m"):
+                return float(argument[:-1])
+
+            if data := re.match(r"(\d+)\s*\'\s*(\d+)\s*\"", argument):
+                feet = int(data[1])
+                inches = int(data[2])
+                total_inches = feet * 12 + inches
+                return total_inches * 0.0254
+
+            if data := re.match(r"(\d+)\s*\"", argument):
+                inches = int(data[1])
+                return inches * 0.0254
+
+            if data := re.match(r"(\d+)\s*\'", argument):
+                feet = int(data[1])
+                return feet * 0.3048
+
+            if data := re.match(r"(\d+)", argument):
+                return float(data[1])
+
+            return float(argument)
+
+        except ValueError:
+            raise commands.BadArgument(f"Invalid measurement: {argument}")
+
+    async def transform(self, _: Interaction[Client], argument: str) -> float:
+        return await self.process(argument)
+
+    async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
+        choices = (
+            Sizes
+            if not value
+            else (
+                x
+                for x, _, _ in process.extract(
+                    value.title(),
+                    Sizes,
+                    limit=25,
+                    score_cutoff=50,
+                    processor=lambda x: x.name if isinstance(x, Sizes) else x,
+                )
+            )
+        )
+        return [Choice(name=item.name, value=item.name) for item in choices]
+
+    async def convert(self, _: commands.Context[Client], argument: str):
+        return await self.process(argument)
+
+
 class KindTransformer(commands.Converter[Kind], Transformer):
     async def process(self, argument: str) -> Kind:
         if argument and (
@@ -128,3 +206,4 @@ class KindTransformer(commands.Converter[Kind], Transformer):
 
 StatArg = Transform[str, StatTransformer]
 KindArg = Transform[Kind, KindTransformer]
+SizeArg = Transform[float, SizeTransformer]
