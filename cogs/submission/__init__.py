@@ -346,46 +346,35 @@ class Submission(commands.Cog):
         await itx.response.defer(ephemeral=True, thinking=True)
 
         if isinstance(oc, Character):
-            for text in self.bot.wrapper.wrap(oc.description):
-                await itx.followup.send(content=text, ephemeral=True)
-            return
-
-        embed = discord.Embed(title="Characters")
-        key = {"server": itx.guild_id}
-        if author is None:
-            embed.color = itx.user.color
+            response = oc.description
         else:
-            key["user_id"] = author.id
-            embed.color = author.color
-            embed.set_author(name=author.display_name, icon_url=author.display_avatar)
-
-        ocs = [Character(**oc) async for oc in self.db.find(key) if itx.guild and itx.guild.get_member(oc["user_id"])]
-        query = remove_markdown(query)
-        items = [
-            x
-            for x, _, _ in process.extract(
-                query,
-                ocs,
-                processor=lambda x: x.name if isinstance(x, Character) else x,
-                score_cutoff=80,
-            )
-        ]
-
-        if not items:
-            query = query.lower()
-            items.extend(x for x in ocs if query in x.display_name.lower())
-
-        items.sort(key=lambda x: (x.user_id, x.oc_name))
-
-        for k, v in groupby(items, lambda x: x.user_id):
-            m = itx.guild and itx.guild.get_member(k)
-            if m and len(embed.fields) < 25:
-                embed.add_field(
-                    name=str(m),
-                    value="\n".join(f"* {oc.display_name}" for oc in v)[:1024],
+            key = {} if author is None else {"user_id": author.id}
+            guild = itx.guild or itx.user.mutual_guilds[0]
+            ocs = [Character(**oc) async for oc in self.db.find(key) if guild.get_member(oc["user_id"])]
+            query = remove_markdown(query)
+            items = [
+                x
+                for x, _, _ in process.extract(
+                    query,
+                    ocs,
+                    processor=lambda x: x.name if isinstance(x, Character) else x,
+                    score_cutoff=80,
                 )
+            ]
 
-        await itx.followup.send(embed=embed, ephemeral=True)
+            if not items:
+                query = query.lower()
+                items.extend(x for x in ocs if query in x.display_name.lower())
+
+            items.sort(key=lambda x: (x.user_id, x.name))
+            response = "\n".join(
+                f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
+                for k, v in groupby(items, lambda x: x.user_id)
+                if (m := guild.get_member(k))
+            )
+
+        for text in self.bot.wrapper.wrap(response):
+            await itx.followup.send(content=text, ephemeral=True)
 
     @char.command(aliases=["del", "remove"])
     async def delete(self, ctx: commands.Context[Client], *, oc: CharacterArg):
