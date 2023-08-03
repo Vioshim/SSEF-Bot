@@ -67,6 +67,9 @@ class Submission(commands.Cog):
             and o.oc_name.lower().startswith(text.lower())
         ]
 
+        if len(ocs) == 1:
+            return await ctx.invoke(self.read, oc=ocs[0])
+
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
         data = {
             m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild and ctx.guild.get_member(k))
@@ -80,17 +83,14 @@ class Submission(commands.Cog):
             for k, v in data.items()
         ]
 
-        if embeds and len(embeds) <= 10 and sum(len(x) for x in embeds) <= 6000:
+        if embeds and len(embeds) <= 10 and all(len(x) <= 4000 for x in embeds) and sum(len(x) for x in embeds) <= 6000:
             await ctx.reply(embeds=embeds, ephemeral=True)
         else:
-            for text in ctx.bot.wrapper.wrap(
-                "\n".join(
-                    f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
-                    for k, v in groupby(ocs, lambda x: x.user_id)
-                    if (m := ctx.guild and ctx.guild.get_member(k))
-                )
+            content = (
+                "\n".join(f"###{k.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v) for k, v in data.items())
                 or "No characters found."
-            ):
+            )
+            for text in ctx.bot.wrapper.wrap(content.replace("###", "## ")):
                 await ctx.reply(content=text, ephemeral=True)
 
     @char.app_command.command()
@@ -718,7 +718,6 @@ class Submission(commands.Cog):
         description = "\n".join(f"* {oc.display_name}" for oc in ocs) or "Doesn't have any characters."
 
         embed = discord.Embed(
-            title="Characters",
             color=ctx.author.color,
             description=description,
         )
