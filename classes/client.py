@@ -46,6 +46,14 @@ class Client(commands.Bot):
             drop_whitespace=True,
             fix_sentence_endings=False,
         )
+        self.e_wrapper = TextWrapper(
+            width=4000,
+            break_long_words=True,
+            break_on_hyphens=False,
+            replace_whitespace=False,
+            drop_whitespace=True,
+            fix_sentence_endings=False,
+        )
         self.mongodb = AsyncIOMotorClient(os.getenv("MONGO_URI"))
 
     def db(self, db: str) -> AsyncIOMotorCollection:

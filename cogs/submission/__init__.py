@@ -14,6 +14,7 @@
 
 
 from itertools import groupby
+from more_itertools import chunked
 from typing import Optional
 
 import discord
@@ -77,14 +78,17 @@ class Submission(commands.Cog):
 
         embeds = [
             discord.Embed(
-                description="\n".join(f"* {oc.display_name}" for oc in v),
+                description=text,
                 color=k.color,
             ).set_author(name=k.display_name, icon_url=k.display_avatar)
             for k, v in data.items()
+            for text in self.bot.e_wrapper.wrap("\n".join(f"* {oc.display_name}" for oc in v))
         ]
 
-        if embeds and len(embeds) <= 10 and all(len(x) <= 4000 for x in embeds) and sum(len(x) for x in embeds) <= 6000:
-            await ctx.reply(embeds=embeds, ephemeral=True)
+        items = [*chunked(embeds, 10)]
+        if items and all(sum(len(x) for x in y) <= 6000 for y in items):
+            for embeds in items:
+                await ctx.reply(embeds=embeds, ephemeral=True)
         else:
             content = (
                 "\n".join(f"###{k.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v) for k, v in data.items())
