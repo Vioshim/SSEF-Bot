@@ -70,8 +70,6 @@ class Character:
     def oc_name(self):
         desc = remove_markdown(self.description)
         name = name[1].strip() if (name := NM.search(desc)) else self.name
-        name, *_ = name.split(".")
-        name, *_ = name.split(",")
         return remove_markdown(name)
 
     @property

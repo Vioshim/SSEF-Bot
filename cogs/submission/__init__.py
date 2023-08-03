@@ -59,51 +59,24 @@ class Submission(commands.Cog):
         ctx : commands.Context
             Context of the command
         """
-        ocs = []
+        ocs = [
+            o
+            async for oc in self.db.find({"server": ctx.guild.id})
+            if ctx.guild.get_member(oc["user_id"])
+            and (o := Character(**oc))
+            and o.oc_name.lower().startswith(text.lower())
+        ]
 
-        try:
-            oc = await Character.converter(ctx, text)
-        except commands.BadArgument:
-            oc = None
-
-        if oc is None:
-            ocs = [
-                Character(**oc)
-                async for oc in self.db.find({"server": ctx.guild.id})
-                if ctx.guild.get_member(oc["user_id"])
-            ]
-            if result := process.extractOne(
-                text,
-                ocs,
-                processor=lambda oc: oc.name if isinstance(oc, Character) else oc,
-                score_cutoff=80,
-            ):
-                oc = result[0]
-            elif len(ocs := [oc for oc in ocs if text.lower() in oc.display_name.lower()]) == 1:
-                oc = ocs[0]
-
-        if isinstance(oc, Character):
-            for text in ctx.bot.wrapper.wrap(oc.description):
-                await ctx.reply(content=text, ephemeral=True)
-        elif ocs:
-            embed = discord.Embed(title="Characters", color=ctx.author.color)
-
-            ocs.sort(key=lambda x: (x.user_id, x.oc_name))
-
-            for k, v in groupby(ocs, lambda x: x.user_id):
-                m = ctx.guild and ctx.guild.get_member(k)
-                if m and len(embed.fields) < 25:
-                    embed.add_field(
-                        name=str(m),
-                        value="\n".join(f"* {oc.display_name}" for oc in v)[:1024],
-                    )
-
-            await ctx.reply(embed=embed, ephemeral=True)
-        else:
-            await ctx.reply(
-                content="No characters found.",
-                ephemeral=True,
+        ocs.sort(key=lambda x: (x.user_id, x.oc_name))
+        for text in ctx.bot.wrapper.wrap(
+            "\n".join(
+                f"## {m}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
+                for k, v in groupby(ocs, lambda x: x.user_id)
+                if (m := ctx.guild and ctx.guild.get_member(k))
             )
+            or "No characters found."
+        ):
+            await ctx.reply(content=text, ephemeral=True)
 
     @char.app_command.command()
     async def create(self, itx: discord.Interaction[Client], sheet: Sheet):
