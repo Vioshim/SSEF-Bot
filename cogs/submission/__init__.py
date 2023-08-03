@@ -68,15 +68,30 @@ class Submission(commands.Cog):
         ]
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
-        for text in ctx.bot.wrapper.wrap(
-            "\n".join(
-                f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
-                for k, v in groupby(ocs, lambda x: x.user_id)
-                if (m := ctx.guild and ctx.guild.get_member(k))
-            )
-            or "No characters found."
-        ):
-            await ctx.reply(content=text, ephemeral=True)
+        data = {
+            m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild and ctx.guild.get_member(k))
+        }
+
+        embeds = [
+            discord.Embed(
+                description="\n".join(f"* {oc.display_name}" for oc in v),
+                color=k.color,
+            ).set_author(name=k.display_name, icon_url=k.display_avatar)
+            for k, v in data.items()
+        ]
+
+        if embeds and len(embeds) <= 10 and sum(len(x) for x in embeds) <= 6000:
+            await ctx.reply(embeds=embeds, ephemeral=True)
+        else:
+            for text in ctx.bot.wrapper.wrap(
+                "\n".join(
+                    f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
+                    for k, v in groupby(ocs, lambda x: x.user_id)
+                    if (m := ctx.guild and ctx.guild.get_member(k))
+                )
+                or "No characters found."
+            ):
+                await ctx.reply(content=text, ephemeral=True)
 
     @char.app_command.command()
     async def create(self, itx: discord.Interaction[Client], sheet: Sheet):
