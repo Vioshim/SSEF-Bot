@@ -70,7 +70,7 @@ class Submission(commands.Cog):
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
         for text in ctx.bot.wrapper.wrap(
             "\n".join(
-                f"## {m}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
+                f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
                 for k, v in groupby(ocs, lambda x: x.user_id)
                 if (m := ctx.guild and ctx.guild.get_member(k))
             )
