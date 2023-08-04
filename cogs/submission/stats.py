@@ -45,7 +45,7 @@ class Kind(IntEnum):
     Basic = 11
     Middle = 15
     Final = 20
-    Legendary = 25
+    Legendary = 30
 
 
 SIZES = dict(
