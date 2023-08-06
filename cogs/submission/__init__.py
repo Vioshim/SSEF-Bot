@@ -71,7 +71,7 @@ class Submission(commands.Cog):
         if len(ocs) == 1:
             return await ctx.invoke(self.read, oc=ocs[0])
 
-        if len(text.lower()) > 1 and (oc := find(lambda x: x.oc_name.lower() == text.lower(), ocs)):
+        if len(text) > 1 and (oc := find(lambda x: x.oc_name.lower() == text.lower(), ocs)):
             return await ctx.invoke(self.read, oc=oc)
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
@@ -228,9 +228,24 @@ class Submission(commands.Cog):
         oc : str
             Character
         """
-        if isinstance(oc, Character):
-            for text in ctx.bot.wrapper.wrap(oc.description):
-                await ctx.reply(content=text, ephemeral=True)
+        items = ctx.bot.wrapper.wrap(oc.description)
+        member = ctx.guild and ctx.guild.get_member(oc.user_id)
+        embeds = []
+
+        for index, text in enumerate(items):
+            if member and index == len(items) - 1:
+                embed = discord.Embed(
+                    color=member.color,
+                    datetime=oc.created_at,
+                    description=f"Created by {member.mention}",
+                )
+                embed.set_author(
+                    name=member.display_name,
+                    icon_url=member.display_avatar,
+                )
+                embed.set_footer(text=f"ID: {oc._id}")
+                embeds.append(embed)
+            await ctx.reply(content=text, ephemeral=True, embeds=embeds)
 
     @char.command(with_app_command=False)
     async def query(
@@ -341,7 +356,24 @@ class Submission(commands.Cog):
         await itx.response.defer(ephemeral=True, thinking=True)
 
         if isinstance(oc, Character):
-            response = oc.description
+            items = itx.client.wrapper.wrap(oc.description)
+            member = itx.guild and itx.guild.get_member(oc.user_id)
+            embeds = []
+
+            for index, text in enumerate(items):
+                if member and index == len(items) - 1:
+                    embed = discord.Embed(
+                        color=member.color,
+                        datetime=oc.created_at,
+                        description=f"Created by {member.mention}",
+                    )
+                    embed.set_author(
+                        name=member.display_name,
+                        icon_url=member.display_avatar,
+                    )
+                    embed.set_footer(text=f"ID: {oc._id}")
+                    embeds.append(embed)
+                await itx.followup.send(content=text, ephemeral=True, embeds=embeds)
         else:
             key = {} if author is None else {"user_id": author.id}
             guild = itx.guild or itx.user.mutual_guilds[0]
@@ -362,14 +394,15 @@ class Submission(commands.Cog):
                 items.extend(x for x in ocs if query in x.display_name.lower())
 
             items.sort(key=lambda x: (x.user_id, x.name))
-            response = "\n".join(
-                f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
-                for k, v in groupby(items, lambda x: x.user_id)
-                if (m := guild.get_member(k))
-            )
 
-        for text in self.bot.wrapper.wrap(response):
-            await itx.followup.send(content=text, ephemeral=True)
+            for text in self.bot.wrapper.wrap(
+                "\n".join(
+                    f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
+                    for k, v in groupby(items, lambda x: x.user_id)
+                    if (m := guild.get_member(k))
+                )
+            ):
+                await itx.followup.send(content=text, ephemeral=True)
 
     @char.command(aliases=["del", "remove"])
     async def delete(self, ctx: commands.Context[Client], *, oc: CharacterArg):
