@@ -236,7 +236,7 @@ class Submission(commands.Cog):
             if member and index == len(items) - 1:
                 embed = discord.Embed(
                     color=member.color,
-                    datetime=oc.created_at,
+                    timestamp=oc.created_at,
                     description=f"Created by {member.mention}",
                 )
                 embed.set_author(
@@ -364,7 +364,7 @@ class Submission(commands.Cog):
                 if member and index == len(items) - 1:
                     embed = discord.Embed(
                         color=member.color,
-                        datetime=oc.created_at,
+                        timestamp=oc.created_at,
                         description=f"Created by {member.mention}",
                     )
                     embed.set_author(
