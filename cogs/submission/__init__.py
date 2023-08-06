@@ -228,7 +228,7 @@ class Submission(commands.Cog):
         oc : str
             Character
         """
-        for text in ctx.bot.wrapper.wrap(oc.description + f"\n============================\nID: XXXXXXXX | Created by <@{oc.user_id}>"):
+        for text in ctx.bot.wrapper.wrap(oc.description + f"\n============================\nID: {oc._id} | Created by <@{oc.user_id}>"):
             await ctx.reply(content=text, ephemeral=True)
 
     @char.command(with_app_command=False)
@@ -340,7 +340,7 @@ class Submission(commands.Cog):
         await itx.response.defer(ephemeral=True, thinking=True)
 
         if isinstance(oc, Character):
-            content = oc.description + f"\n============================\nID: XXXXXXXX | Created by <@{oc.user_id}>"
+            content = oc.description + f"\n============================\nID: {oc._id} | Created by <@{oc.user_id}>"
         else:
             key = {} if author is None else {"user_id": author.id}
             guild = itx.guild or itx.user.mutual_guilds[0]
