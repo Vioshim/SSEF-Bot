@@ -20,14 +20,14 @@ from typing import Optional
 import discord
 from discord import app_commands
 from discord.ext import commands
-from discord.utils import escape_mentions, remove_markdown
+from discord.utils import escape_mentions, remove_markdown, find
 from rapidfuzz import process
 
 from classes.character import Character, CharacterArg
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
 from cogs.submission.sheets import Sheet
-from cogs.submission.stats import Kind, KindArg, SizeArg, StatArg, ureg
+from cogs.submission.stats import Kind, KindArg, SizeArg, StatArg
 
 
 class Submission(commands.Cog):
@@ -70,6 +70,9 @@ class Submission(commands.Cog):
 
         if len(ocs) == 1:
             return await ctx.invoke(self.read, oc=ocs[0])
+
+        if len(text.lower()) > 1 and (oc := find(lambda x: x.oc_name.lower() == text.lower(), ocs)):
+            return await ctx.invoke(self.read, oc=oc)
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
         data = {
