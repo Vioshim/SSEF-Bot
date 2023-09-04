@@ -14,13 +14,13 @@
 
 
 from itertools import groupby
-from more_itertools import chunked
 from typing import Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
-from discord.utils import escape_mentions, remove_markdown, find
+from discord.utils import escape_mentions, find, remove_markdown
+from more_itertools import chunked
 from rapidfuzz import process
 
 from classes.character import Character, CharacterArg
@@ -228,7 +228,8 @@ class Submission(commands.Cog):
         oc : str
             Character
         """
-        for text in ctx.bot.wrapper.wrap(oc.description + f"\n============================\nID: {oc._id} | Created by <@{oc.user_id}>"):
+        info = f"# ============================\nID: {oc._id} | Created by <@{oc.user_id}>"
+        for text in ctx.bot.wrapper.wrap(f"{oc.description.removesuffix(info).strip()}\n{info}"):
             await ctx.reply(content=text, ephemeral=True)
 
     @char.command(with_app_command=False)
@@ -340,7 +341,8 @@ class Submission(commands.Cog):
         await itx.response.defer(ephemeral=True, thinking=True)
 
         if isinstance(oc, Character):
-            content = oc.description + f"\n============================\nID: {oc._id} | Created by <@{oc.user_id}>"
+            info = f"# ============================\nID: {oc._id} | Created by <@{oc.user_id}>"
+            content = f"{oc.description.removesuffix(info).strip()}\n{info}"
         else:
             key = {} if author is None else {"user_id": author.id}
             guild = itx.guild or itx.user.mutual_guilds[0]
@@ -361,7 +363,7 @@ class Submission(commands.Cog):
                 items.extend(x for x in ocs if query in x.display_name.lower())
 
             items.sort(key=lambda x: (x.user_id, x.name))
-            
+
             content = "\n".join(
                 f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
                 for k, v in groupby(items, lambda x: x.user_id)
@@ -680,7 +682,7 @@ class Submission(commands.Cog):
         await ctx.invoke(self.description, oc=oc, description=description)
 
     @commands.guild_only()
-    @commands.command(aliases=["list"])
+    @commands.command(aliases=["list", "charlist", "oclist", "ocs"])
     async def listchar(
         self,
         ctx: commands.Context[Client],
