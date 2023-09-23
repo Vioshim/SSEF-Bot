@@ -23,26 +23,31 @@ class Sheet(StrEnum):
     def template(self):
         match self:
             case Sheet.Empty:
-                return (
-                    "Brotherhood:\n"
-                    "Job:\n"
-                    "Age:\n"
-                    "Level:\n"
-                    "Gender:\n"
-                    "Species:\n"
-                    "Sexuality:\n"
-                    "Magic:\n"
-                    "Equipment:\n"
-                    "Information:\n"
-                    "Appearance:\n"
-                    "Inherit:\n"
-                    "Stats:\n"
-                    "HP:\n"
-                    "Atk:\n"
-                    "SpAtk:\n"
-                    "Def:\n"
-                    "SpDef:\n"
-                    "Spe:"
-                )
+                items = [
+                    "Job",
+                    "Age",
+                    "Level",
+                    "Gender",
+                    "Species",
+                    "Sexuality",
+                    "Magic",
+                    "Equipment",
+                    "Information",
+                    "Appearance",
+                    "Inherit",
+                    "Stats",
+                    "HP",
+                    "Atk",
+                    "SpAtk",
+                    "Def",
+                    "SpDef",
+                    "Spe",
+                ]
             case _:
-                return "Age:\nGender:\nInfo:\nAppearance:"
+                items = [
+                    "Age",
+                    "Gender",
+                    "Info",
+                    "Appearance",
+                ]
+        return "\n".join(f"{item}: " for item in items)
