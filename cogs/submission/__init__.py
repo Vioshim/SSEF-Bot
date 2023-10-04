@@ -19,8 +19,7 @@ from typing import Optional
 import discord
 from discord import app_commands
 from discord.ext import commands
-from discord.utils import escape_mentions, find, remove_markdown
-from more_itertools import chunked
+from discord.utils import escape_mentions, remove_markdown
 from rapidfuzz import process
 
 from classes.character import Character, CharacterArg
@@ -68,12 +67,6 @@ class Submission(commands.Cog):
             and o.oc_name.lower().startswith(text.lower())
         ]
 
-        if len(ocs) == 1:
-            return await ctx.invoke(self.read, oc=ocs[0])
-
-        if len(text) > 1 and (oc := find(lambda x: x.oc_name.lower() == text.lower(), ocs)):
-            return await ctx.invoke(self.read, oc=oc)
-
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
         data = {
             m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild and ctx.guild.get_member(k))
@@ -81,27 +74,32 @@ class Submission(commands.Cog):
 
         embeds = [
             discord.Embed(
-                description=text,
+                description="\n".join(f"* {oc.display_name}" for oc in v),
                 color=k.color,
             ).set_author(name=k.display_name, icon_url=k.display_avatar)
             for k, v in data.items()
-            for text in self.bot.e_wrapper.wrap("\n".join(f"* {oc.display_name}" for oc in v))
         ]
 
-        items = [*chunked(embeds, 10)]
-        if items and all(sum(len(x) for x in y) <= 6000 for y in items):
-            for embeds in items:
-                await ctx.reply(embeds=embeds, ephemeral=True)
+        if embeds and len(embeds) <= 10 and sum(len(x) for x in embeds) <= 6000:
+            await ctx.reply(embeds=embeds, ephemeral=True)
         else:
-            content = (
-                "\n".join(f"###{k.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v) for k, v in data.items())
+            for text in ctx.bot.wrapper.wrap(
+                "\n".join(
+                    f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
+                    for k, v in groupby(ocs, lambda x: x.user_id)
+                    if (m := ctx.guild and ctx.guild.get_member(k))
+                )
                 or "No characters found."
-            )
-            for text in ctx.bot.wrapper.wrap(content.replace("###", "## ")):
+            ):
                 await ctx.reply(content=text, ephemeral=True)
 
     @char.app_command.command()
-    async def create(self, itx: discord.Interaction[Client], sheet: Sheet):
+    async def create(
+        self,
+        itx: discord.Interaction[Client],
+        sheet: Sheet,
+        image: Optional[discord.Attachment] = None,
+    ):
         """Create a new character
 
         Parameters
@@ -110,6 +108,8 @@ class Submission(commands.Cog):
             Interaction of the command
         sheet : Sheet
             Sheet template to use
+        image : Optional[discord.Attachment]
+            Image of the character
         """
         if not itx.guild:
             return await itx.response.send_message(
@@ -117,8 +117,7 @@ class Submission(commands.Cog):
                 ephemeral=True,
             )
 
-        modal = CreateCharacterModal(timeout=None)
-        modal.desc.default = sheet.template
+        modal = CreateCharacterModal(sheet, image)
         await itx.response.send_modal(modal)
 
     @char.command(aliases=["new"], with_app_command=False)
@@ -163,8 +162,9 @@ class Submission(commands.Cog):
                 )
 
             if ctx.message and ctx.message.attachments:
-                description = f"{description.strip()}\n# Attachments\n"
-                description += "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+                description, *imgs = description.split("\n# Attachments\n")
+                imgs = "\n".join(x.strip() for x in imgs if x) + "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+                description = f"{description.strip()}\n# Attachments\n{imgs}"
 
             try:
                 oc = await Character.converter(ctx, name)
@@ -180,7 +180,7 @@ class Submission(commands.Cog):
                 )
                 await ctx.reply(f"Created {name!r}", ephemeral=True)
         elif ctx.interaction:
-            modal = CreateCharacterModal(timeout=None)
+            modal = CreateCharacterModal()
             modal.name.default = name
             if description:
                 modal.desc.default = description
@@ -647,8 +647,9 @@ class Submission(commands.Cog):
             Description of the character
         """
         if ctx.message and ctx.message.attachments:
-            description = f"{description.strip()}\n# Attachments\n"
-            description += "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+            description, *imgs = description.split("\n# Attachments\n")
+            imgs = "\n".join(x.strip() for x in imgs if x) + "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+            description = f"{description.strip()}\n# Attachments\n{imgs}"
 
         if description == oc.description:
             return await ctx.reply("You can't set the same description.", ephemeral=True)
