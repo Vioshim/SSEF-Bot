@@ -15,7 +15,7 @@
 
 from itertools import groupby
 from typing import Optional
-
+import operator
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -63,13 +63,21 @@ class Submission(commands.Cog):
             o
             async for oc in self.db.find({"server": ctx.guild.id})
             if ctx.guild.get_member(oc["user_id"])
-            and (o := Character(**oc))
-            and o.oc_name.lower().startswith(text.lower())
+            and (o := Character(**oc)).oc_name.lower().startswith(text.lower())
+            and (ctx.guild and ctx.guild.get_member(o.user_id))
         ]
+
+        if len(text) > 2 and (result := process.extractOne(
+            text,
+            ocs,
+            processor=lambda x: x.oc_name if isinstance(x, Character) else x,
+            score_cutoff=90,
+        )):
+            return await ctx.invoke(self.read, oc=result[0])
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
         data = {
-            m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild and ctx.guild.get_member(k))
+            m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild.get_member(k))
         }
 
         embeds = [
@@ -81,17 +89,17 @@ class Submission(commands.Cog):
         ]
 
         if embeds and len(embeds) <= 10 and sum(len(x) for x in embeds) <= 6000:
-            await ctx.reply(embeds=embeds, ephemeral=True)
-        else:
-            for text in ctx.bot.wrapper.wrap(
-                "\n".join(
-                    f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
-                    for k, v in groupby(ocs, lambda x: x.user_id)
-                    if (m := ctx.guild and ctx.guild.get_member(k))
-                )
-                or "No characters found."
-            ):
-                await ctx.reply(content=text, ephemeral=True)
+            return await ctx.reply(embeds=embeds, ephemeral=True)
+
+        for text in ctx.bot.wrapper.wrap(
+            "\n".join(
+                f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
+                for k, v in groupby(ocs, lambda x: x.user_id)
+                if (m := ctx.guild and ctx.guild.get_member(k))
+            )
+            or "No characters found."
+        ):
+            await ctx.reply(content=text, ephemeral=True)
 
     @char.app_command.command()
     async def create(
