@@ -18,13 +18,13 @@ from __future__ import annotations
 import contextlib
 from typing import Optional
 
-from discord import Interaction, TextStyle, Attachment
+from discord import Attachment, Interaction, TextStyle
 from discord.ext import commands
 from discord.ui import Modal, TextInput
-from cogs.submission.sheets import Sheet
 
 from classes.character import Character
 from classes.client import Client
+from cogs.submission.sheets import Sheet
 
 __all__ = (
     "CreateCharacterModal",

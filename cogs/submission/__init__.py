@@ -15,7 +15,7 @@
 
 from itertools import groupby
 from typing import Optional
-import operator
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -67,18 +67,18 @@ class Submission(commands.Cog):
             and (ctx.guild and ctx.guild.get_member(o.user_id))
         ]
 
-        if len(text) > 2 and (result := process.extractOne(
-            text,
-            ocs,
-            processor=lambda x: x.oc_name if isinstance(x, Character) else x,
-            score_cutoff=90,
-        )):
+        if len(text) > 2 and (
+            result := process.extractOne(
+                text,
+                ocs,
+                processor=lambda x: x.oc_name if isinstance(x, Character) else x,
+                score_cutoff=90,
+            )
+        ):
             return await ctx.invoke(self.read, oc=result[0])
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
-        data = {
-            m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild.get_member(k))
-        }
+        data = {m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild.get_member(k))}
 
         embeds = [
             discord.Embed(
@@ -171,7 +171,9 @@ class Submission(commands.Cog):
 
             if ctx.message and ctx.message.attachments:
                 description, *imgs = description.split("\n# Attachments\n")
-                imgs = "\n".join(x.strip() for x in imgs if x) + "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+                imgs = "\n".join(x.strip() for x in imgs if x) + "\n".join(
+                    f"* {item.proxy_url}" for item in ctx.message.attachments
+                )
                 description = f"{description.strip()}\n# Attachments\n{imgs}"
 
             try:
@@ -656,7 +658,9 @@ class Submission(commands.Cog):
         """
         if ctx.message and ctx.message.attachments:
             description, *imgs = description.split("\n# Attachments\n")
-            imgs = "\n".join(x.strip() for x in imgs if x) + "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+            imgs = "\n".join(x.strip() for x in imgs if x) + "\n".join(
+                f"* {item.proxy_url}" for item in ctx.message.attachments
+            )
             description = f"{description.strip()}\n# Attachments\n{imgs}"
 
         if description == oc.description:

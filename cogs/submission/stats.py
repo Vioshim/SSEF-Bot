@@ -82,17 +82,15 @@ class StatTransformer(commands.Converter[str], Transformer):
         try:
             values = [float(x) for x in value]
             return " ".join(map(str, values))
-        except ValueError:
-            raise commands.BadArgument(f"Invalid stat string: {argument}")
+        except ValueError as e:
+            raise commands.BadArgument(f"Invalid stat string: {argument}") from e
 
     async def transform(self, _: Interaction[Client], argument: str) -> str:
         return await self.process(argument)
 
     async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
         choices = (
-            Stats
-            if not value
-            else (
+            (
                 x
                 for x, _, _ in process.extract(
                     value.title(),
@@ -102,6 +100,8 @@ class StatTransformer(commands.Converter[str], Transformer):
                     processor=lambda x: x.name if isinstance(x, Stats) else x,
                 )
             )
+            if value
+            else Stats
         )
         return [Choice(name=item.name, value=item.value) for item in choices]
 
@@ -119,19 +119,18 @@ class SizeTransformer(commands.Converter[float], Transformer):
             )
         ):
             return SIZES[item[0]]
+
         try:
             return sum(item.value * ureg(item.unit.name).to(ureg.meters).magnitude for item in parse(argument))
-        except (ValueError, pint.UndefinedUnitError, AttributeError):
-            raise commands.BadArgument(f"Invalid measurement: {argument}")
+        except (ValueError, pint.UndefinedUnitError, AttributeError) as e:
+            raise commands.BadArgument(f"Invalid measurement: {argument}") from e
 
     async def transform(self, _: Interaction[Client], argument: str) -> float:
         return await self.process(argument)
 
     async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
         choices = (
-            SIZES
-            if not value
-            else (
+            (
                 x
                 for x, _, _ in process.extract(
                     value.title(),
@@ -140,6 +139,8 @@ class SizeTransformer(commands.Converter[float], Transformer):
                     score_cutoff=50,
                 )
             )
+            if value
+            else SIZES
         )
         return [Choice(name=item, value=item) for item in choices]
 
@@ -166,9 +167,7 @@ class KindTransformer(commands.Converter[Kind], Transformer):
 
     async def autocomplete(self, _: Interaction[Client], value: str, /) -> list[Choice[str]]:
         choices = (
-            Kind
-            if not value
-            else (
+            (
                 x
                 for x, _, _ in process.extract(
                     value.title(),
@@ -178,6 +177,8 @@ class KindTransformer(commands.Converter[Kind], Transformer):
                     processor=lambda x: x.name if isinstance(x, Kind) else x,
                 )
             )
+            if value
+            else Kind
         )
         return [Choice(name=item.name, value=item.name) for item in choices]
 
