@@ -14,6 +14,37 @@
 
 from enum import StrEnum, auto
 
+BASE_TEMPLATE = """
+**Name:** 
+**Job:** (Optional)
+**Age:** (Optional)
+**Level:** (This can exceed 100 with a valid reason)
+**Gender:** 
+**Species:** 
+**Sexuality:** (Optional)
+**Magic:** (Optional. Recommended for adventurers. Soft cap at 2-3 magics.)
+**Equipment:** (Optional. Recommended for adventurers and those who fight often.)
+
+**Information:** 
+
+**Appearance:** 
+
+**Inherit:** (Optional, only if you have Inherit. For Second Inherit, you can have 2 of these in a character.)
+
+**Stats:** (Optional. Recommended for adventurers)
+- **Health:** 
+- **Attack:** 
+- **Special Attack:** 
+- **Defense:** 
+- **Special Defense:** 
+- **Speed:** 
+
+**Equipment Sheet:**
+[Type+Specialty?] **[Name Here]:**
+- **Stats:** [Stats Here, Max of 500 or 1000 depending on Specialty or not.]
+- **Enchant:** [Enchant Here, Name if Any, and Explanation. Max 3 Enchants per character.]
+""".strip()  # noqa: W291
+
 
 class Sheet(StrEnum):
     Empty = auto()
