@@ -18,7 +18,7 @@ BASE_TEMPLATE = """
 **Name:** 
 **Job:** (Optional)
 **Age:** (Optional)
-**Level:** (This can exceed 100 with a valid reason)
+**Level:** (Optional)
 **Gender:** 
 **Species:** 
 **Sexuality:** (Optional)
@@ -31,18 +31,16 @@ BASE_TEMPLATE = """
 
 **Inherit:** (Optional, only if you have Inherit. For Second Inherit, you can have 2 of these in a character.)
 
-**Stats:** (Optional. Recommended for adventurers)
-- **Health:** 
-- **Attack:** 
-- **Special Attack:** 
-- **Defense:** 
-- **Special Defense:** 
-- **Speed:** 
+**Stats:** (Optional)
+- **Health:** 3/5
+- **Attack:** 3/5
+- **Special Attack:** 3/5
+- **Defense:** 3/5
+- **Special Defense:** 3/5
+- **Speed:** 3/5
 
 **Equipment Sheet:**
-[Type+Specialty?] **[Name Here]:**
-- **Stats:** [Stats Here, Max of 500 or 1000 depending on Specialty or not.]
-- **Enchant:** [Enchant Here, Name if Any, and Explanation. Max 3 Enchants per character.]
+- [Type+Specialty?] **[Name Here]:** Enchant Here, Name if Any, and Explanation. Max 3 Enchants per character.
 """.strip()  # noqa: W291
 
 
