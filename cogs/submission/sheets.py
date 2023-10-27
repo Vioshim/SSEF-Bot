@@ -45,12 +45,15 @@ BASE_TEMPLATE = """
 
 
 class Sheet(StrEnum):
+    Full = auto()
     Empty = auto()
     Pocket = auto()
 
     @property
     def template(self):
         match self:
+            case Sheet.Full:
+                return BASE_TEMPLATE
             case Sheet.Empty:
                 items = [
                     "Job",

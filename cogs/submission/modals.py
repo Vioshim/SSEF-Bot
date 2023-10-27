@@ -33,8 +33,8 @@ __all__ = (
 
 
 class CreateCharacterModal(Modal, title="Create Character"):
-    def __init__(self, sheet: Sheet = Sheet.Empty, image: Optional[Attachment] = None) -> None:
-        super().__init__(timeout=None)
+    def __init__(self, sheet: Sheet = Sheet.Full, image: Optional[Attachment] = None) -> None:
+        super(CreateCharacterModal, self).__init__(timeout=None)
         self.image = image
         self.name = TextInput(
             label="Name",
