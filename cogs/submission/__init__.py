@@ -572,7 +572,7 @@ class Submission(commands.Cog):
 
         # Determine the number of ticks dynamically based on the requirement
         ticks_values = np.linspace(lower_limit, upper_limit, 5)
-        feet_ticks = [f"{val:.02f} m\n{val // 0.3048}' {val / 0.3048 % 1 * 12}\"ft" for val in ticks_values]
+        feet_ticks = [f"{val:.02f} m\n{int(val // 0.3048)}' {int(val / 0.3048 % 1 * 12)}\"ft" for val in ticks_values]
 
         # Create the plot with improved aesthetics
         plt.figure(figsize=(10, 6))
