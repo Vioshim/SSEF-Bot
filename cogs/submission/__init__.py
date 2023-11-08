@@ -594,6 +594,19 @@ class Submission(commands.Cog):
         file = discord.File(buf, filename="plot.png")
         await ctx.reply(file=file, ephemeral=True)
 
+    @commands.command(aliases=["size", "measure"])
+    async def height(self, ctx: commands.Context[Client], *, mean: SizeArg = 1.0):
+        """Get a character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        mean : Size
+            Average size of the species (default: 1.0)
+        """
+        await ctx.invoke(self.size, mean=mean)
+
     @char.group(invoke_without_command=True, aliases=["update"])
     async def edit(
         self,
