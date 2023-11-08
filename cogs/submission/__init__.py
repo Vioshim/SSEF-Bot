@@ -554,7 +554,7 @@ class Submission(commands.Cog):
         std_dev = 0.15 * mean
 
         # Generate x values for the normal distribution curve
-        x = np.linspace(mean - 2 * std_dev, mean + 2 * std_dev, 1000)
+        x = np.linspace(mean - 2.5 * std_dev, mean + 2.5 * std_dev, 1000)
 
         # Calculate the normal distribution values using scipy's norm.pdf function
         y = norm.pdf(x, mean, std_dev)
@@ -585,6 +585,7 @@ class Submission(commands.Cog):
         plt.legend(fontsize=12)
         plt.grid(True, linestyle="--", alpha=0.7)
         plt.xticks(ticks_values, feet_ticks, fontsize=12, fontweight="bold")
+        plt.tight_layout()
 
         # Save the plot to a BytesIO object and send it to Discord
         buf = io.BytesIO()
