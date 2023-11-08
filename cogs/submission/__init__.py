@@ -13,14 +13,18 @@
 # limitations under the License.
 
 
+import io
 from itertools import groupby
 from typing import Optional
 
 import discord
+import matplotlib.pyplot as plt
+import numpy as np
 from discord import app_commands
 from discord.ext import commands
 from discord.utils import escape_mentions, remove_markdown
 from rapidfuzz import process
+from scipy.stats import norm
 
 from classes.character import Character, CharacterArg
 from classes.client import Client
@@ -535,36 +539,59 @@ class Submission(commands.Cog):
         await ctx.reply(embed=embed, ephemeral=True)
 
     @char.command()
-    async def size(
-        self,
-        ctx: commands.Context[Client],
-        multiplier: float = 1.0,
-        *,
-        size: SizeArg = 1.0,
-    ):
-        """Calculate the size of a character
+    async def size(self, ctx: commands.Context[Client], *, mean: SizeArg = 1.0):
+        """Normal Distribution of a species's size
 
         Parameters
         ----------
         ctx : commands.Context
             Context of the command
-        multiplier : float
-            Multiplier of the size (default: 1.0)
-        size : Size
-            Size of the character (default: 1.0)
+        mean : Size
+            Average size of the species (default: 1.0)
         """
-        value = round(max(size * multiplier, 0.01), 2)
-        feet, inches = value // 0.3048, value / 0.3048 % 1 * 12
+        lower_limit = 0.75 * mean
+        upper_limit = 1.25 * mean
+        std_dev = 0.15 * mean
 
-        await ctx.reply(
-            content="\n".join(
-                [
-                    f"* {value:.2f} **m**",
-                    f"* {feet:.0f} **ft**, {inches:.2f} **in**",
-                ]
-            ),
-            ephemeral=True,
+        # Generate x values for the normal distribution curve
+        x = np.linspace(mean - 2 * std_dev, mean + 2 * std_dev, 1000)
+
+        # Calculate the normal distribution values using scipy's norm.pdf function
+        y = norm.pdf(x, mean, std_dev)
+
+        # Create a mask for the shaded area between lower and upper limits
+        mask = (x >= lower_limit) & (x <= upper_limit)
+
+        # Calculate the area under the curve for the shaded region
+        area = np.trapz(y[mask], x[mask])
+        percentage = area * 100
+
+        # Convert mean, lower limit, upper limit, and standard deviation to feet-inches
+        mean_ft, mean_inch = mean // 0.3048, mean / 0.3048 % 1 * 12
+        std_dev_ft, std_dev_inch = std_dev // 0.3048, std_dev / 0.3048 % 1 * 12
+
+        # Determine the number of ticks dynamically based on the requirement
+        ticks_values = np.linspace(lower_limit, upper_limit, 5)
+        feet_ticks = [f"{val:.02f} m\n{val // 0.3048}' {val / 0.3048 % 1 * 12}\"ft" for val in ticks_values]
+
+        # Create the plot with improved aesthetics
+        plt.figure(figsize=(10, 6))
+        plt.plot(x, y, color="darkblue", label="Normal Distribution", linewidth=2)
+        plt.fill_between(x, y, where=mask, alpha=0.5, color="skyblue", label=f"Shaded Area ({percentage:.2f}%)")
+        plt.title(
+            f"Normal Distribution (Mean: {mean_ft:.0f}' {mean_inch:.1f}\" / {mean:.2f}m | SD: {std_dev_ft:.0f}' {std_dev_inch:.1f}\" / {std_dev:.2f}m)",
+            fontsize=16,
         )
+        plt.legend(fontsize=12)
+        plt.grid(True, linestyle="--", alpha=0.7)
+        plt.xticks(ticks_values, feet_ticks, fontsize=12, fontweight="bold")
+
+        # Save the plot to a BytesIO object and send it to Discord
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        file = discord.File(buf, filename="plot.png")
+        await ctx.reply(file=file, ephemeral=True)
 
     @char.group(invoke_without_command=True, aliases=["update"])
     async def edit(

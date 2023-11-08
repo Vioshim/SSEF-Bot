@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from enum import IntEnum, StrEnum
 
 import pint
@@ -119,6 +120,9 @@ class SizeTransformer(commands.Converter[float], Transformer):
             )
         ):
             return SIZES[item[0]]
+
+        with suppress(ValueError):
+            return float(argument)
 
         try:
             return sum(item.value * ureg(item.unit.name).to(ureg.meters).magnitude for item in parse(argument))
