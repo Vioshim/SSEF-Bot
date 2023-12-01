@@ -29,7 +29,7 @@ from scipy.stats import norm
 from classes.character import Character, CharacterArg
 from classes.client import Client
 from cogs.submission.modals import CreateCharacterModal, UpdateCharacterModal
-from cogs.submission.sheets import BASE_TEMPLATE, Sheet
+from cogs.submission.sheets import Sheet
 from cogs.submission.stats import Kind, KindArg, SizeArg, StatArg
 
 
@@ -200,7 +200,7 @@ class Submission(commands.Cog):
                 modal.desc.default = description
             await ctx.interaction.response.send_modal(modal)
         else:
-            await ctx.reply(BASE_TEMPLATE, ephemeral=True)
+            await ctx.reply(Sheet.Normal.template, ephemeral=True)
 
     @commands.guild_only()
     @commands.command()
