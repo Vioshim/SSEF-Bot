@@ -13,13 +13,13 @@
 # limitations under the License.
 
 
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from typing import Literal, Optional
 
 import discord
 from discord.ext import commands, tasks
-from discord.utils import snowflake_time, get
+from discord.utils import get, snowflake_time
 
 from classes.client import Client
 
@@ -46,7 +46,7 @@ class ReminderInfo:
         return bool(
             self.last_message_id
             and self.cooldown_time
-            and (snowflake_time(self.last_message_id) + timedelta(seconds=self.cooldown_time)) <= datetime.utcnow()
+            and (snowflake_time(self.last_message_id) + timedelta(seconds=self.cooldown_time)) <= utcnow()
         )
 
 
@@ -86,17 +86,14 @@ class Reminder(commands.Cog):
 
     def cog_unload(self):
         self.check.cancel()
-    
+
     @tasks.loop(minutes=1)
     async def check(self):
-
         for channel_id, infos in self.info_channels.items():
-
             if not (channel := self.bot.get_channel(channel_id)):
                 channel = await self.bot.fetch_channel(channel_id)
 
             for info in filter(lambda i: not i.notified_already and i.expired(), infos):
-
                 reference = channel.get_partial_message(info.last_message_id)
 
                 try:
@@ -167,7 +164,7 @@ class Reminder(commands.Cog):
                 ephemeral=True,
             )
             return await self.db.delete_one(key)
-        
+
         if not (data := (await self.db.find_one(key))):
             data = key
 
@@ -178,7 +175,7 @@ class Reminder(commands.Cog):
         self.info_channels.setdefault(info.channel_id, set())
         self.info_channels[info.channel_id].add(info)
         await self.db.replace_one(key, asdict(info), upsert=True)
-        
+
         await ctx.reply(
             f"From now on, I will remind you every {amount} minutes to reply if you haven't already.",
             ephemeral=True,
