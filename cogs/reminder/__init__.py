@@ -19,7 +19,7 @@ from typing import Literal, Optional
 
 import discord
 from discord.ext import commands, tasks
-from discord.utils import get, snowflake_time
+from discord.utils import get, snowflake_time, utcnow
 
 from classes.client import Client
 
@@ -28,9 +28,9 @@ from classes.client import Client
 class ReminderInfo:
     user_id: int = field(hash=True)
     channel_id: int = field(hash=True)
-    cooldown_time: Optional[int] = field(default=None, hash=False)
-    last_message_id: Optional[int] = field(default=None, hash=False)
-    notified_already: bool = field(default=False, hash=False)
+    cooldown_time: Optional[int] = field(default=None, hash=False, compare=False)
+    last_message_id: Optional[int] = field(default=None, hash=False, compare=False)
+    notified_already: bool = field(default=False, hash=False, compare=False)
 
     @property
     def last_date(self) -> Optional[datetime]:
@@ -80,6 +80,15 @@ class Reminder(commands.Cog):
             data = ReminderInfo(**info)
             self.info_channels.setdefault(data.channel_id, set())
             self.info_channels[data.channel_id].add(data)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if (infos := self.info_channels.get(message.channel.id)) and (info := get(infos, user_id=message.author.id)):
+            info.last_message_id = message.id
+            await self.db.update_one(
+                {"user_id": info.user_id, "channel_id": info.channel_id},
+                {"$set": {"last_message_id": info.last_message_id}},
+            )
 
     def cog_load(self) -> None:
         self.check.start()
@@ -168,7 +177,7 @@ class Reminder(commands.Cog):
         if not (data := (await self.db.find_one(key))):
             data = key
 
-        data["cool_down_time"] = amount
+        data["cooldown_time"] = amount
         data.pop("_id", None)
 
         info = ReminderInfo(**data)
