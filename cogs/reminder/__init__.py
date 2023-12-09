@@ -146,7 +146,7 @@ class Reminder(commands.Cog):
             channel = self.bot.get_channel(payload.channel_id)
             await channel.delete_messages([discord.Object(id=payload.message_id)])
 
-    @commands.command()
+    @commands.hybrid_command()
     async def remind(
         self,
         ctx: commands.Context[Client],
