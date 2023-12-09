@@ -19,7 +19,7 @@ from typing import Literal, Optional
 
 import discord
 from discord.ext import commands, tasks
-from discord.utils import snowflake_time, get
+from discord.utils import snowflake_time, get, utcnow
 
 from classes.client import Client
 
@@ -46,7 +46,7 @@ class ReminderInfo:
         return bool(
             self.last_message_id
             and self.cooldown_time
-            and (snowflake_time(self.last_message_id) + timedelta(seconds=self.cooldown_time)) <= datetime.utcnow()
+            and (snowflake_time(self.last_message_id) + timedelta(seconds=self.cooldown_time)) <= utcnow()
         )
 
 
