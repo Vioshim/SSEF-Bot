@@ -171,7 +171,7 @@ class Reminder(commands.Cog):
         if not (data := (await self.db.find_one(key))):
             data = key
 
-        data["cool_down_time"] = amount
+        data["cooldown_time"] = amount
         data.pop("_id", None)
 
         info = ReminderInfo(**data)
