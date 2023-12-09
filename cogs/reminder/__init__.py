@@ -151,7 +151,7 @@ class Reminder(commands.Cog):
     async def remind(
         self,
         ctx: commands.Context[Client],
-        time: Literal["None", "30s", "5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "48h", "1w"],
+        time: Optional[Literal["None", "30s", "5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "48h", "1w"]] = None,
         channel: discord.TextChannel | discord.Thread = commands.CurrentChannel,
     ):
         """Remind in x minutes to reply if no reply has been said by the user in a channel
@@ -160,14 +160,14 @@ class Reminder(commands.Cog):
         ----------
         ctx : commands.Context
             Context of the command
-        time : Literal[str]
+        time : Optional[Literal[str]], optional
             Time to remind in
         channel : discord.TextChannel | discord.Thread, optional
             Channel to remind in, by default CurrentChannel
         """
         key = {"user_id": ctx.author.id, "channel_id": channel.id}
 
-        if (amount := DEFINITIONS.get(time)) == "None":
+        if not (amount := DEFINITIONS.get(time)):
             self.info_channels.setdefault(channel.id, set()).discard(key)
             await ctx.reply(
                 "Reminder has been disabled for this channel.",
