@@ -81,6 +81,15 @@ class Reminder(commands.Cog):
             self.info_channels.setdefault(data.channel_id, set())
             self.info_channels[data.channel_id].add(data)
 
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if (infos := self.info_channels.get(message.channel.id)) and (info := get(infos, user_id=message.author.id)):
+            info.last_message_id = message.id
+            await self.db.update_one(
+                {"user_id": info.user_id, "channel_id": info.channel_id},
+                {"$set": {"last_message_id": info.last_message_id}},
+            )
+
     def cog_load(self) -> None:
         self.check.start()
 
