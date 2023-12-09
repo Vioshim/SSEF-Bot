@@ -51,7 +51,7 @@ class ReminderInfo:
 
 
 DEFINITIONS = {
-    "30s": 0.5,
+    "30s": 1,
     "5m": 5,
     "15m": 15,
     "30m": 30,
@@ -151,7 +151,7 @@ class Reminder(commands.Cog):
     async def remind(
         self,
         ctx: commands.Context[Client],
-        time: Optional[Literal["None", "30s", "5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "48h", "1w"]] = None,
+        time: Optional[Literal["None", "1m", "5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "48h", "1w"]] = None,
         channel: discord.TextChannel | discord.Thread = commands.CurrentChannel,
     ):
         """Remind in x minutes to reply if no reply has been said by the user in a channel
@@ -168,12 +168,15 @@ class Reminder(commands.Cog):
         key = {"user_id": ctx.author.id, "channel_id": channel.id}
 
         if not (amount := DEFINITIONS.get(time)):
-            self.info_channels.setdefault(channel.id, set()).discard(key)
-            await ctx.reply(
-                "Reminder has been disabled for this channel.",
-                ephemeral=True,
-            )
-            return await self.db.delete_one(key)
+            self.info_channels.setdefault(channel.id, set())
+            if not (info := get(self.info_channels[channel.id], **key)):
+                amount = 1
+            else:
+                await ctx.reply(
+                    "Reminder has been disabled for this channel.",
+                    ephemeral=True,
+                )
+                return await self.db.delete_one(key)
 
         if not (data := (await self.db.find_one(key))):
             data = key
