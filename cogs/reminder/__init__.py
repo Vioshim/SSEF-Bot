@@ -28,9 +28,9 @@ from classes.client import Client
 class ReminderInfo:
     user_id: int = field(hash=True)
     channel_id: int = field(hash=True)
-    cooldown_time: Optional[int] = field(default=None, hash=False)
-    last_message_id: Optional[int] = field(default=None, hash=False)
-    notified_already: bool = field(default=False, hash=False)
+    cooldown_time: Optional[int] = field(default=None, hash=False, compare=False)
+    last_message_id: Optional[int] = field(default=None, hash=False, compare=False)
+    notified_already: bool = field(default=False, hash=False, compare=False)
 
     @property
     def last_date(self) -> Optional[datetime]:
