@@ -167,24 +167,24 @@ class Reminder(commands.Cog):
         """
         key = {"user_id": ctx.author.id, "channel_id": channel.id}
         infos = self.info_channels.get(channel.id, set())
+        info = get(infos, **key)
 
         if not (amount := DEFINITIONS.get(time)):
-            if info := get(infos, **key):
+            if not info:
+                amount = 1
+            else:
                 await ctx.reply(
                     "Reminder has been disabled for this channel.",
                     ephemeral=True,
                 )
                 return await self.db.delete_one(key)
-            else:
-                amount = 1
 
         if not (data := (await self.db.find_one(key))):
             data = key
 
+        infos.discard(info)
         data["cooldown_time"] = amount
         data.pop("_id", None)
-
-        infos.discard(get(infos, **key))
 
         info = ReminderInfo(**data)
         self.info_channels.setdefault(channel.id, set())
