@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from contextlib import suppress
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from typing import Literal, Optional
@@ -100,10 +101,23 @@ class Reminder(commands.Cog):
     @tasks.loop(seconds=5)
     async def check(self):
         for channel_id, infos in self.info_channels.items():
-            if not (channel := self.bot.get_channel(channel_id)):
-                channel = await self.bot.fetch_channel(channel_id)
 
-            for info in filter(lambda i: not i.notified_already and i.expired(), infos):
+            if not (channel := self.bot.get_channel(channel_id)):
+                try:
+                    channel = await self.bot.fetch_channel(channel_id)
+                except discord.NotFound:
+                    self.info_channels.pop(channel_id, None)
+                    await self.db.delete_many({"channel_id": channel_id})
+                    continue
+
+            def reminder_check(item: ReminderInfo) -> bool:
+                m = channel.guild.get_member(item.user_id)
+                if m and str(m.status) == "offline":
+                    return False
+                
+                return item.notified_already and item.expired()
+
+            for info in filter(reminder_check, infos):
                 reference = channel.get_partial_message(info.last_message_id)
 
                 try:
@@ -127,6 +141,8 @@ class Reminder(commands.Cog):
                         allowed_mentions=discord.AllowedMentions(users=True),
                         view=view,
                     )
+                except (discord.Forbidden, discord.HTTPException):
+                    continue
 
                 await message.add_reaction("❌")
 
@@ -147,6 +163,7 @@ class Reminder(commands.Cog):
             channel = self.bot.get_channel(payload.channel_id)
             await channel.delete_messages([discord.Object(id=payload.message_id)])
 
+    @commands.guild_only()
     @commands.hybrid_command()
     async def remind(
         self,
@@ -167,7 +184,15 @@ class Reminder(commands.Cog):
         """
         key = {"user_id": ctx.author.id, "channel_id": channel.id}
         infos = self.info_channels.get(channel.id, set())
+        permissions = channel.permissions_for(ctx.author)
+        able_to_send = permissions.send_messages if isinstance(channel, discord.TextChannel) else permissions.send_messages_in_threads
         info = get(infos, **key)
+
+        if not able_to_send:
+            return await ctx.reply(
+                "You don't have the permission to send messages in this channel.",
+                ephemeral=True,
+            )
 
         if not (amount := DEFINITIONS.get(time)):
             if not info:
