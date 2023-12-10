@@ -40,13 +40,13 @@ class ReminderInfo:
     @property
     def next_fire(self) -> Optional[datetime]:
         if self.last_message_id and self.cooldown_time:
-            return snowflake_time(self.last_message_id) + timedelta(seconds=self.cooldown_time)
+            return snowflake_time(self.last_message_id) + timedelta(minutes=self.cooldown_time)
 
     def expired(self):
         return bool(
             self.last_message_id
             and self.cooldown_time
-            and (snowflake_time(self.last_message_id) + timedelta(seconds=self.cooldown_time)) <= utcnow()
+            and (snowflake_time(self.last_message_id) + timedelta(minutes=self.cooldown_time)) <= utcnow()
         )
 
 
