@@ -97,7 +97,7 @@ class Reminder(commands.Cog):
     def cog_unload(self):
         self.check.cancel()
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(seconds=5)
     async def check(self):
         for channel_id, infos in self.info_channels.items():
             if not (channel := self.bot.get_channel(channel_id)):
