@@ -173,6 +173,7 @@ class Reminder(commands.Cog):
             if not info:
                 amount = 1
             else:
+                infos.discard(info)
                 await ctx.reply(
                     "Reminder has been disabled for this channel.",
                     ephemeral=True,
