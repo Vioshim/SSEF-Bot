@@ -166,9 +166,10 @@ class Reminder(commands.Cog):
             Channel to remind in, by default CurrentChannel
         """
         key = {"user_id": ctx.author.id, "channel_id": channel.id}
+        infos = self.info_channels.get(channel.id, set())
 
         if not (amount := DEFINITIONS.get(time)):
-            if (infos := self.info_channels.get(channel.id)) and (info := get(infos, **key)):
+            if info := get(infos, **key):
                 await ctx.reply(
                     "Reminder has been disabled for this channel.",
                     ephemeral=True,
@@ -183,9 +184,12 @@ class Reminder(commands.Cog):
         data["cooldown_time"] = amount
         data.pop("_id", None)
 
+        infos.discard(get(infos, **key))
+
         info = ReminderInfo(**data)
-        self.info_channels.setdefault(info.channel_id, set())
-        self.info_channels[info.channel_id].add(info)
+        self.info_channels.setdefault(channel.id, set())
+        self.info_channels[channel.id].add(info)
+
         await self.db.replace_one(key, asdict(info), upsert=True)
 
         await ctx.reply(
