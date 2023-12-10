@@ -119,12 +119,11 @@ class Reminder(commands.Cog):
 
             for info in filter(reminder_check, infos):
                 reference = channel.get_partial_message(info.last_message_id)
-
                 try:
-                    message = await channel.send(
+                    last = await reference.fetch()
+                    message = await last.reply(
                         "Hello, you haven't replied in a while.\nPlease reply to this message, press ❌ to delete this message.",
                         allowed_mentions=discord.AllowedMentions(replied_user=True),
-                        reference=reference,
                     )
                 except discord.NotFound:
                     view = discord.ui.View()
