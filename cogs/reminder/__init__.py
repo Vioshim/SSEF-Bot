@@ -112,7 +112,8 @@ class Reminder(commands.Cog):
                 "You shouldn't ping users with the no ping role.",
                 allowed_mentions=discord.AllowedMentions(replied_user=True),
             )
-        elif (infos := self.info_channels.get(message.channel.id)) and (info := get(infos, user_id=message.author.id)):
+
+        if (infos := self.info_channels.get(message.channel.id)) and (info := get(infos, user_id=message.author.id)):
             info.last_message_id = message.id
             info.notified_already = False
             await self.db.update_one(
