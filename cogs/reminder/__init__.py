@@ -13,9 +13,9 @@
 # limitations under the License.
 
 
-from contextlib import suppress
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
+from textwrap import TextWrapper
 from typing import Literal, Optional
 
 import discord
@@ -73,6 +73,7 @@ class Reminder(commands.Cog):
         self.bot = bot
         self.db = bot.db("Reminder")
         self.info_channels: dict[int, set[ReminderInfo]] = {}
+        self.wrapper = TextWrapper(width=250, placeholder="", max_lines=10)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -83,8 +84,35 @@ class Reminder(commands.Cog):
             self.info_channels[data.channel_id].add(data)
 
     @commands.Cog.listener()
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
+        roles = set(before.roles) ^ set(after.roles)
+        if roles and (no_ping_role := get(roles, id=1183590174110785566)):
+            members_text = " ".join(str(x.id) for x in sorted(no_ping_role.members, key=lambda x: x.id))
+            rule = await after.guild.fetch_automod_rule(1183591766696411206)
+            regex_patterns = [f"<@({line.replace(' ', '|')})>" for line in self.wrapper.wrap(members_text) if line]
+            if rule.trigger.regex_patterns != regex_patterns:
+                await rule.edit(trigger=discord.AutoModTrigger(regex_patterns=regex_patterns))
+
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if (infos := self.info_channels.get(message.channel.id)) and (info := get(infos, user_id=message.author.id)):
+        if message.flags.ephemeral or not message.guild or message.webhook_id or message.author.bot:
+            return
+
+        no_ping_role = get(message.guild.roles, id=1183590174110785566)
+        if (
+            not (message.author.guild_permissions.manage_messages or message.author.guild_permissions.administrator)
+            and no_ping_role
+            and any(
+                no_ping_role in x.roles
+                for x in message.mentions
+                if isinstance(x, discord.Member) and x != message.author
+            )
+        ):
+            await message.reply(
+                "You shouldn't ping users with the no ping role.",
+                allowed_mentions=discord.AllowedMentions(replied_user=True),
+            )
+        elif (infos := self.info_channels.get(message.channel.id)) and (info := get(infos, user_id=message.author.id)):
             info.last_message_id = message.id
             info.notified_already = False
             await self.db.update_one(
@@ -101,7 +129,6 @@ class Reminder(commands.Cog):
     @tasks.loop(seconds=5)
     async def check(self):
         for channel_id, infos in self.info_channels.items():
-
             if not (channel := self.bot.get_channel(channel_id)):
                 try:
                     channel = await self.bot.fetch_channel(channel_id)
@@ -114,7 +141,7 @@ class Reminder(commands.Cog):
                 m = channel.guild.get_member(item.user_id)
                 if m and str(m.status) == "offline":
                     return False
-                
+
                 return item.notified_already and item.expired()
 
             for info in filter(reminder_check, infos):
@@ -184,7 +211,11 @@ class Reminder(commands.Cog):
         key = {"user_id": ctx.author.id, "channel_id": channel.id}
         infos = self.info_channels.get(channel.id, set())
         permissions = channel.permissions_for(ctx.author)
-        able_to_send = permissions.send_messages if isinstance(channel, discord.TextChannel) else permissions.send_messages_in_threads
+        able_to_send = (
+            permissions.send_messages
+            if isinstance(channel, discord.TextChannel)
+            else permissions.send_messages_in_threads
+        )
         info = get(infos, **key)
 
         if not able_to_send:
