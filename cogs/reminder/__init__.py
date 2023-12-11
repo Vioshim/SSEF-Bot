@@ -100,7 +100,8 @@ class Reminder(commands.Cog):
 
         no_ping_role = get(message.guild.roles, id=1183590174110785566)
         if (
-            not (message.author.guild_permissions.manage_messages or message.author.guild_permissions.administrator)
+            not message.author.guild_permissions.manage_messages
+            and not message.author.guild_permissions.administrator
             and no_ping_role
             and any(
                 no_ping_role in x.roles
@@ -143,7 +144,7 @@ class Reminder(commands.Cog):
                 if m and str(m.status) == "offline":
                     return False
 
-                return item.notified_already and item.expired()
+                return not item.notified_already and item.expired()
 
             for info in filter(reminder_check, infos):
                 reference = channel.get_partial_message(info.last_message_id)
