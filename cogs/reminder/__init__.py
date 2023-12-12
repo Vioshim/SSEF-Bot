@@ -84,7 +84,13 @@ class Reminder(commands.Cog):
         self.db = bot.db("Reminder")
         self.info_channels: dict[int, set[ReminderInfo]] = {}
         self.wrapper = TextWrapper(width=250, placeholder="", max_lines=10)
-        self.embed_wrapper = TextWrapper(width=4000, placeholder="", max_lines=10, drop_whitespace=False)
+        self.embed_wrapper = TextWrapper(
+            width=4000,
+            placeholder="",
+            max_lines=10,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
 
     @commands.Cog.listener()
     async def on_ready(self):
