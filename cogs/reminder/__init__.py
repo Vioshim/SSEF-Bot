@@ -150,7 +150,7 @@ class Reminder(commands.Cog):
         messages: list[discord.Message] = []
 
         def checker(m: discord.Message):
-            if m.application_id == 1061328084307034212 and message.channel == m.channel:
+            if m.webhook_id and message.channel == m.channel:
                 messages.append(m)
             return False
 
@@ -178,9 +178,8 @@ class Reminder(commands.Cog):
         for future in done:
             future.exception()
 
-        if any(future.get_name() == "Edit" for future in done) or (
-            not messages and all(future.get_name() != "Message" for future in done)
-        ):
+        futures = (future.get_name() for future in done)
+        if "Edit" in futures or not (messages or "Message" in futures):
             return
 
         attachments = message.attachments
