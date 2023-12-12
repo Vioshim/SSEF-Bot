@@ -20,7 +20,7 @@ from typing import Literal, Optional
 
 import discord
 from discord.ext import commands, tasks
-from discord.utils import get, snowflake_time, utcnow
+from discord.utils import get, snowflake_time, utcnow, format_dt
 
 from classes.client import Client
 
@@ -29,9 +29,15 @@ from classes.client import Client
 class ReminderInfo:
     user_id: int = field(hash=True)
     channel_id: int = field(hash=True)
+    server_id: int = field(hash=True)
     cooldown_time: Optional[int] = field(default=None, hash=False, compare=False)
     last_message_id: Optional[int] = field(default=None, hash=False, compare=False)
     notified_already: bool = field(default=False, hash=False, compare=False)
+
+    @property
+    def jump_url(self):
+        url = f"https://discord.com/channels/{self.server_id}/{self.channel_id}"
+        return f"{url}/{self.last_message_id}" if self.last_message_id else url
 
     @property
     def last_date(self) -> Optional[datetime]:
@@ -64,6 +70,10 @@ DEFINITIONS = {
     "48h": 2 * 24 * 60,
     "1w": 7 * 24 * 60,
 }
+TXT_REMINDER = {
+    0: "I'll remind you of this RP without ping if you use </remind:1183192458805387348>",
+    None: "Reminder has been disabled for this channel.",
+}
 
 
 class Reminder(commands.Cog):
@@ -74,11 +84,11 @@ class Reminder(commands.Cog):
         self.db = bot.db("Reminder")
         self.info_channels: dict[int, set[ReminderInfo]] = {}
         self.wrapper = TextWrapper(width=250, placeholder="", max_lines=10)
+        self.embed_wrapper = TextWrapper(width=4000, placeholder="", max_lines=10)
 
     @commands.Cog.listener()
     async def on_ready(self):
-        async for info in self.db.find({}):
-            info.pop("_id", None)
+        async for info in self.db.find({}, {"_id": 0}):
             data = ReminderInfo(**info)
             self.info_channels.setdefault(data.channel_id, set())
             self.info_channels[data.channel_id].add(data)
@@ -197,63 +207,101 @@ class Reminder(commands.Cog):
         self,
         ctx: commands.Context[Client],
         time: Optional[Literal["None", "1m", "5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "48h", "1w"]] = None,
-        channel: discord.TextChannel | discord.Thread = commands.CurrentChannel,
+        channel: Optional[discord.TextChannel | discord.Thread] = None,
     ):
-        """Remind in x minutes to reply if no reply has been said by the user in a channel
+        """Set or display reminders for replies in a Discord channel.
 
         Parameters
         ----------
         ctx : commands.Context
-            Context of the command
+            The context of the command.
         time : Optional[Literal[str]], optional
-            Time to remind in
-        channel : discord.TextChannel | discord.Thread, optional
-            Channel to remind in, by default CurrentChannel
+            Time interval for setting the reminder. Use 'None' to display current reminders.
+        channel : Optional[discord.TextChannel | discord.Thread], optional
+            The channel for which the reminder is set. Defaults to the current channel.
         """
-        key = {"user_id": ctx.author.id, "channel_id": channel.id}
-        infos = self.info_channels.get(channel.id, set())
-        permissions = channel.permissions_for(ctx.author)
-        able_to_send = (
+
+        if time is None:
+            return await self.display_reminders(ctx, channel)
+
+        current_channel = channel or ctx.channel
+        if not self.can_send_messages(ctx.author, current_channel):
+            return await ctx.reply(
+                f"You don't have permission to send messages in {current_channel.mention}",
+                ephemeral=True,
+            )
+
+        amount = await self.manage_reminder(
+            time,
+            channel_id=current_channel.id,
+            user_id=ctx.author.id,
+        )
+        await ctx.reply(
+            TXT_REMINDER.get(amount, f"Reminder has been set to {amount} minutes."),
+            ephemeral=True,
+        )
+
+    async def display_reminders(
+        self,
+        ctx: commands.Context[Client],
+        channel: Optional[discord.TextChannel | discord.Thread],
+    ):
+        reminders = [
+            item
+            for items in self.info_channels.values()
+            for item in items
+            if item.server_id == ctx.guild.id
+            and item.user_id == ctx.author.id
+            and (channel is None or channel.id == item.channel_id)
+        ]
+
+        title = f"Reminders in {channel.name}" if channel else "Reminders"
+        for embed_text in self.embed_wrapper.wrap(
+            "\n".join(
+                f"* {item.jump_url} - {(next_fire := item.next_fire) and format_dt(next_fire, 'R')}"
+                for item in sorted(reminders, key=lambda x: x.last_message_id or 0)
+            )
+            or "No reminders."
+        ):
+            embed = discord.Embed(
+                title=title,
+                description=embed_text,
+                color=ctx.author.color,
+            )
+            await ctx.reply(embed=embed, ephemeral=True)
+
+    @staticmethod
+    def can_send_messages(member: discord.Member, channel: discord.TextChannel | discord.Thread):
+        permissions = channel.permissions_for(member)
+        return (
             permissions.send_messages
             if isinstance(channel, discord.TextChannel)
             else permissions.send_messages_in_threads
         )
-        info = get(infos, **key)
 
-        if not able_to_send:
-            return await ctx.reply(
-                "You don't have the permission to send messages in this channel.",
-                ephemeral=True,
-            )
+    async def manage_reminder(self, time: str, channel_id: int, **query: int):
+        # Logic to enable/disable reminders and update the database
 
-        if not (amount := DEFINITIONS.get(time)):
-            if not info:
-                amount = 1
-            else:
-                infos.discard(info)
-                await ctx.reply(
-                    "Reminder has been disabled for this channel.",
-                    ephemeral=True,
-                )
-                return await self.db.delete_one(key)
+        infos = self.info_channels.get(channel_id, set())
+        info = get(infos, **query)
+        amount = DEFINITIONS.get(time)
 
-        if not (data := (await self.db.find_one(key))):
-            data = key
+        if not amount and (info and not info.cooldown_time):
+            infos.discard(info)
+            await self.db.delete_one(query)
+            return
+
+        if not (data := (await self.db.find_one(query, {"_id": 0, "cooldown_time": 0}))):
+            data = query
 
         infos.discard(info)
-        data["cooldown_time"] = amount
-        data.pop("_id", None)
 
-        info = ReminderInfo(**data)
-        self.info_channels.setdefault(channel.id, set())
-        self.info_channels[channel.id].add(info)
+        info = ReminderInfo(**data, cooldown_time=amount)
+        self.info_channels.setdefault(channel_id, set())
+        self.info_channels[channel_id].add(info)
 
-        await self.db.replace_one(key, asdict(info), upsert=True)
-
-        await ctx.reply(
-            f"From now on, I will remind you every {amount} minutes to reply if you haven't already.",
-            ephemeral=True,
-        )
+        await self.db.replace_one(query, asdict(info), upsert=True)
+        return amount or 0
 
 
 async def setup(bot: Client):
