@@ -235,6 +235,7 @@ class Reminder(commands.Cog):
             time,
             channel_id=current_channel.id,
             user_id=ctx.author.id,
+            server_id=ctx.guild.id,
         )
         await ctx.reply(
             TXT_REMINDER.get(amount, f"Reminder has been set to {amount} minutes."),
