@@ -287,26 +287,11 @@ class Reminder(commands.Cog):
             await self.db.delete_one(query)
             return
 
-        if not (
-            data := (
-                await self.db.find_one(
-                    query,
-                    {
-                        "_id": 0,
-                        "cooldown_time": 0,
-                        "last_message_id": 0,
-                    },
-                )
-            )
-        ):
-            data = query
+        if not (data := (await self.db.find_one(query, {"_id": 0, "cooldown_time": 0}))):
+            data = query | {"last_message_id": time_snowflake(utcnow())}
 
         infos.discard(info)
-        info = ReminderInfo(
-            **data,
-            cooldown_time=amount,
-            last_message_id=time_snowflake(utcnow()),
-        )
+        info = ReminderInfo(**data, cooldown_time=amount)
         self.info_channels.setdefault(channel_id, set())
         self.info_channels[channel_id].add(info)
 
