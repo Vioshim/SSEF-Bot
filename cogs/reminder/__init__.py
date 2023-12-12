@@ -280,9 +280,9 @@ class Reminder(commands.Cog):
             else permissions.send_messages_in_threads
         )
 
-    async def manage_reminder(self, time: str, channel_id: int, **query: int):
+    async def manage_reminder(self, time: str, **query: int):
         # Logic to enable/disable reminders and update the database
-
+        channel_id = query["channel_id"]
         infos = self.info_channels.get(channel_id, set())
         info = get(infos, **query)
         amount = DEFINITIONS.get(time)
@@ -297,7 +297,7 @@ class Reminder(commands.Cog):
 
         infos.discard(info)
 
-        info = ReminderInfo(**data, cooldown_time=amount, channel_id=channel_id)
+        info = ReminderInfo(**data, cooldown_time=amount)
         self.info_channels.setdefault(channel_id, set())
         self.info_channels[channel_id].add(info)
 
