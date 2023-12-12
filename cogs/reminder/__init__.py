@@ -178,11 +178,10 @@ class Reminder(commands.Cog):
         for future in done:
             future.exception()
 
-        if any(future.get_name() == "Edit" for future in done):
+        if any(future.get_name() == "Edit" for future in done) or (
+            not messages and all(future.get_name() != "Message" for future in done)
+        ):
             return
-
-        if not messages:
-            messages = [future.get_name() == "Message" for future in done if future.get_name() == "Message"]
 
         attachments = message.attachments
         for msg in sorted(messages, key=lambda x: x.id):
