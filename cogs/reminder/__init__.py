@@ -84,13 +84,6 @@ class Reminder(commands.Cog):
         self.db = bot.db("Reminder")
         self.info_channels: dict[int, set[ReminderInfo]] = {}
         self.wrapper = TextWrapper(width=250, placeholder="", max_lines=10)
-        self.embed_wrapper = TextWrapper(
-            width=4000,
-            placeholder="",
-            max_lines=10,
-            break_long_words=False,
-            break_on_hyphens=False,
-        )
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -262,20 +255,16 @@ class Reminder(commands.Cog):
             and (channel is None or channel.id == item.channel_id)
         ]
 
-        title = f"Reminders in {channel.name}" if channel else "Reminders"
-        for embed_text in self.embed_wrapper.wrap(
-            "\n".join(
+        embed = discord.Embed(
+            title=f"Reminders in {channel.name}" if channel else "Reminders",
+            description="\n".join(
                 f"* {item.jump_url} - {(next_fire := item.next_fire) and format_dt(next_fire, 'R')}"
                 for item in sorted(reminders, key=lambda x: x.last_message_id or 0)
-            )
-            or "No reminders."
-        ):
-            embed = discord.Embed(
-                title=title,
-                description=embed_text,
-                color=ctx.author.color,
-            )
-            await ctx.reply(embed=embed, ephemeral=True)
+            )[:4000]
+            or "No reminders.",
+            color=ctx.author.color,
+        )
+        await ctx.reply(embed=embed, ephemeral=True)
 
     @staticmethod
     def can_send_messages(member: discord.Member, channel: discord.TextChannel | discord.Thread):
