@@ -20,7 +20,7 @@ from typing import Literal, Optional
 
 import discord
 from discord.ext import commands, tasks
-from discord.utils import get, snowflake_time, utcnow, format_dt
+from discord.utils import format_dt, get, snowflake_time, time_snowflake, utcnow
 
 from classes.client import Client
 
@@ -287,12 +287,26 @@ class Reminder(commands.Cog):
             await self.db.delete_one(query)
             return
 
-        if not (data := (await self.db.find_one(query, {"_id": 0, "cooldown_time": 0}))):
+        if not (
+            data := (
+                await self.db.find_one(
+                    query,
+                    {
+                        "_id": 0,
+                        "cooldown_time": 0,
+                        "last_message_id": 0,
+                    },
+                )
+            )
+        ):
             data = query
 
         infos.discard(info)
-
-        info = ReminderInfo(**data, cooldown_time=amount)
+        info = ReminderInfo(
+            **data,
+            cooldown_time=amount,
+            last_message_id=time_snowflake(utcnow()),
+        )
         self.info_channels.setdefault(channel_id, set())
         self.info_channels[channel_id].add(info)
 
