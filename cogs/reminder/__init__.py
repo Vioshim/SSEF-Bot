@@ -297,7 +297,7 @@ class Reminder(commands.Cog):
 
         infos.discard(info)
 
-        info = ReminderInfo(**data, cooldown_time=amount)
+        info = ReminderInfo(**data, cooldown_time=amount, channel_id=channel_id)
         self.info_channels.setdefault(channel_id, set())
         self.info_channels[channel_id].add(info)
 
