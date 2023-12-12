@@ -13,16 +13,26 @@
 # limitations under the License.
 
 
+import asyncio, re
+from contextlib import suppress
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from textwrap import TextWrapper
 from typing import Literal, Optional
+from rapidfuzz import fuzz
 
 import discord
 from discord.ext import commands, tasks
 from discord.utils import format_dt, get, snowflake_time, time_snowflake, utcnow
 
 from classes.client import Client
+
+TUPPER_REPLY_PATTERN = re.compile(
+    r"^> (?P<response>.+)\n"
+    r"@(?P<user>.*) \(<@!(?P<user_id>\d+)>\) - \[jump\]\(<https:\/\/discord\.com\/channels\/@me\/(?P<channel>\d+)\/(?P<message>\d+)>\)\n"
+    r"(?P<content>.*)$",
+    re.DOTALL,
+)
 
 
 @dataclass(slots=True, unsafe_hash=True)
@@ -123,18 +133,86 @@ class Reminder(commands.Cog):
                 allowed_mentions=discord.AllowedMentions(replied_user=True),
             )
 
-        if (infos := self.info_channels.get(message.channel.id)) and (info := get(infos, user_id=message.author.id)):
-            info.last_message_id = message.id
-            info.notified_already = False
-            await self.db.update_one(
-                {"user_id": info.user_id, "channel_id": info.channel_id},
-                {"$set": {"last_message_id": info.last_message_id, "notified_already": False}},
+        if not (
+            info := get(
+                self.info_channels.get(message.channel.id, []),
+                user_id=message.author.id,
             )
+        ):
+            return
 
-    def cog_load(self) -> None:
+        aux_message = message
+
+        context = await self.bot.get_context(message)
+        if context.command:
+            return
+
+        messages: list[discord.Message] = []
+
+        def checker(m: discord.Message):
+            if m.application_id == 1061328084307034212 and message.channel == m.channel:
+                messages.append(m)
+            return False
+
+        done, pending = await asyncio.wait(
+            [
+                asyncio.create_task(
+                    self.bot.wait_for("message", check=checker, timeout=2),
+                    name="Message",
+                ),
+                asyncio.create_task(
+                    self.bot.wait_for("message_edit", check=lambda x, _: x == message),
+                    name="Edit",
+                ),
+                asyncio.create_task(
+                    self.bot.wait_for("message_delete", check=lambda x: x == message),
+                    name="Delete",
+                ),
+            ],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        for future in pending:
+            future.cancel()
+
+        for future in done:
+            future.exception()
+
+        if any(future.get_name() == "Edit" for future in done):
+            return
+
+        if not messages:
+            messages = [future.get_name() == "Message" for future in done if future.get_name() == "Message"]
+
+        attachments = message.attachments
+        for msg in sorted(messages, key=lambda x: x.id):
+            if data := TUPPER_REPLY_PATTERN.search(msg.content):
+                text = str(data.group("content") or msg.content)
+            else:
+                text = msg.content
+
+            if (
+                fuzz.WRatio(text, message.content, score_cutoff=95)
+                or text in message.content
+                or (
+                    attachments
+                    and len(attachments) == len(msg.attachments)
+                    and all(x.filename == y.filename for x, y in zip(attachments, msg.attachments))
+                )
+            ):
+                aux_message = msg
+
+        info.last_message_id = aux_message.id
+        info.notified_already = False
+        await self.db.update_one(
+            {"user_id": info.user_id, "channel_id": info.channel_id},
+            {"$set": {"last_message_id": aux_message.id, "notified_already": False}},
+        )
+
+    async def cog_load(self):
         self.check.start()
 
-    def cog_unload(self):
+    async def cog_unload(self):
         self.check.cancel()
 
     @tasks.loop(seconds=5)
