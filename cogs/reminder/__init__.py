@@ -40,9 +40,12 @@ class ReminderInfo:
     user_id: int = field(hash=True)
     channel_id: int = field(hash=True)
     server_id: int = field(hash=True)
-    cooldown_time: Optional[int] = field(default=None, hash=False, compare=False)
+    cooldown_time: int = field(default=0, hash=False, compare=False)
     last_message_id: Optional[int] = field(default=None, hash=False, compare=False)
     notified_already: bool = field(default=False, hash=False, compare=False)
+
+    def __post_init__(self):
+        self.cooldown_time = self.cooldown_time or 0
 
     @property
     def jump_url(self):
@@ -68,6 +71,7 @@ class ReminderInfo:
 
 
 DEFINITIONS = {
+    "None": 0,
     "30s": 1,
     "5m": 5,
     "15m": 15,
@@ -97,6 +101,7 @@ class Reminder(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        """Load the reminders from the database"""
         async for info in self.db.find({}, {"_id": 0}):
             data = ReminderInfo(**info)
             self.info_channels.setdefault(data.channel_id, set())
@@ -104,13 +109,24 @@ class Reminder(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
+        """Update the regex patterns for the no ping role
+
+        Parameters
+        ----------
+        before : discord.Member
+            The member before the update.
+        after : discord.Member
+            The member after the update.
+        """
         roles = set(before.roles) ^ set(after.roles)
-        if roles and (no_ping_role := get(roles, id=1183590174110785566)):
-            members_text = " ".join(str(x.id) for x in sorted(no_ping_role.members, key=lambda x: x.id))
-            rule = await after.guild.fetch_automod_rule(1183591766696411206)
-            regex_patterns = [f"<@({line.replace(' ', '|')})>" for line in self.wrapper.wrap(members_text) if line]
-            if rule.trigger.regex_patterns != regex_patterns:
-                await rule.edit(trigger=discord.AutoModTrigger(regex_patterns=regex_patterns))
+        if not (roles and (no_ping_role := get(roles, id=1183590174110785566))):
+            return
+
+        rule = await after.guild.fetch_automod_rule(1183591766696411206)
+        member_text = self.wrapper.wrap(" ".join(str(x.id) for x in sorted(no_ping_role.members, key=lambda x: x.id)))
+        regex_patterns = [f"<@({line.replace(' ', '|')})>" for line in member_text if line]
+        if rule.trigger.regex_patterns != regex_patterns:
+            await rule.edit(trigger=discord.AutoModTrigger(regex_patterns=regex_patterns))
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -208,9 +224,11 @@ class Reminder(commands.Cog):
         )
 
     async def cog_load(self):
+        """Start the task loop for the reminders"""
         self.check.start()
 
     async def cog_unload(self):
+        """End the task loop for the reminders"""
         self.check.cancel()
 
     @staticmethod
@@ -237,6 +255,8 @@ class Reminder(commands.Cog):
 
     @tasks.loop(seconds=5)
     async def check(self):
+        """Check for reminders that have expired and send a message to the user."""
+
         for channel_id, infos in self.info_channels.items():
             if not (channel := self.bot.get_channel(channel_id)):
                 try:
@@ -294,14 +314,65 @@ class Reminder(commands.Cog):
             await channel.delete_messages([discord.Object(id=payload.message_id)])
 
     @commands.guild_only()
-    @commands.hybrid_command()
+    @commands.hybrid_group(invoke_without_command=True, case_insensitive=True, fallback="list")
     async def remind(
         self,
         ctx: commands.Context[Client],
-        time: Optional[Literal["None", "1m", "5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "48h", "1w"]] = None,
         channel: Optional[discord.TextChannel | discord.Thread] = None,
     ):
-        """Set or display reminders for replies in a Discord channel.
+        """Display reminders for replies in a Discord channel.
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            The context of the command.
+        channel : Optional[discord.TextChannel | discord.Thread], optional
+            The channel for which the reminder is set. Defaults to the current channel.
+        """
+        reminders = [
+            item
+            for items in self.info_channels.values()
+            for item in items
+            if item.server_id == ctx.guild.id
+            and item.user_id == ctx.author.id
+            and (channel is None or channel.id == item.channel_id)
+        ]
+
+        await ctx.reply(
+            embed=discord.Embed(
+                title=f"Reminders in {channel.name}" if channel else "Reminders",
+                description="\n".join(
+                    f"* {item.jump_url} - {(nf := item.next_fire) and format_dt(nf, 'R')}"
+                    for item in sorted(reminders, key=lambda x: x.last_message_id or 0)
+                )[:4000]
+                or "No reminders.",
+                color=ctx.author.color,
+            ),
+            ephemeral=True,
+        )
+
+    @commands.guild_only()
+    @remind.command(name="set")
+    async def remind_set(
+        self,
+        ctx: commands.Context[Client],
+        time: Literal[
+            "None",
+            "1m",
+            "5m",
+            "15m",
+            "30m",
+            "1h",
+            "3h",
+            "6h",
+            "12h",
+            "24h",
+            "48h",
+            "1w",
+        ] = "None",
+        channel: discord.TextChannel | discord.Thread = commands.CurrentChannel,
+    ):
+        """Set reminders for replies in a Discord channel.
 
         Parameters
         ----------
@@ -312,84 +383,66 @@ class Reminder(commands.Cog):
         channel : Optional[discord.TextChannel | discord.Thread], optional
             The channel for which the reminder is set. Defaults to the current channel.
         """
-
-        if time is None:
-            return await self.display_reminders(ctx, channel)
-
-        current_channel = channel or ctx.channel
-        if not self.can_send_messages(ctx.author, current_channel):
+        permissions = channel.permissions_for(ctx.author)
+        if not (
+            permissions.send_messages
+            if isinstance(channel, discord.TextChannel)
+            else permissions.send_messages_in_threads
+        ):
             return await ctx.reply(
-                f"You don't have permission to send messages in {current_channel.mention}",
+                f"You don't have permission to send messages in {channel.mention}",
                 ephemeral=True,
             )
 
-        amount = await self.manage_reminder(
-            time,
-            channel_id=current_channel.id,
-            user_id=ctx.author.id,
-            server_id=ctx.guild.id,
-        )
+        query = {
+            "channel_id": channel.id,
+            "user_id": ctx.author.id,
+            "server_id": ctx.guild.id,
+        }
+
+        infos = self.info_channels.get(channel.id, set())
+        info = get(infos, **query)
+        amount = DEFINITIONS[time]
+
+        if not (data := await self.db.find_one(query, {"_id": 0, "cooldown_time": 0})):
+            data = query | {"last_message_id": time_snowflake(utcnow())}
+
+        infos.discard(info)
+        info = ReminderInfo(**data, cooldown_time=amount)
+        self.info_channels.setdefault(channel.id, set())
+        self.info_channels[channel.id].add(info)
+
+        await self.db.replace_one(query, asdict(info), upsert=True)
         await ctx.reply(
             TXT_REMINDER.get(amount, f"Reminder has been set to {amount} minutes."),
             ephemeral=True,
         )
 
-    async def display_reminders(
+    @commands.guild_only()
+    @remind.command(name="clear")
+    async def remind_clear(
         self,
         ctx: commands.Context[Client],
-        channel: Optional[discord.TextChannel | discord.Thread],
+        channel: discord.TextChannel | discord.Thread = commands.CurrentChannel,
     ):
-        reminders = [
-            item
-            for items in self.info_channels.values()
-            for item in items
-            if item.server_id == ctx.guild.id
-            and item.user_id == ctx.author.id
-            and (channel is None or channel.id == item.channel_id)
-        ]
+        """Clear reminders for replies in a Discord channel.
 
-        embed = discord.Embed(
-            title=f"Reminders in {channel.name}" if channel else "Reminders",
-            description="\n".join(
-                f"* {item.jump_url} - {(next_fire := item.next_fire) and format_dt(next_fire, 'R')}"
-                for item in sorted(reminders, key=lambda x: x.last_message_id or 0)
-            )[:4000]
-            or "No reminders.",
-            color=ctx.author.color,
-        )
-        await ctx.reply(embed=embed, ephemeral=True)
-
-    @staticmethod
-    def can_send_messages(member: discord.Member, channel: discord.TextChannel | discord.Thread):
-        permissions = channel.permissions_for(member)
-        return (
-            permissions.send_messages
-            if isinstance(channel, discord.TextChannel)
-            else permissions.send_messages_in_threads
-        )
-
-    async def manage_reminder(self, time: str, **query: int):
-        # Logic to enable/disable reminders and update the database
-        channel_id = query["channel_id"]
-        infos = self.info_channels.get(channel_id, set())
-        info = get(infos, **query)
-        amount = DEFINITIONS.get(time)
-
-        if not amount and (info and not info.cooldown_time):
-            infos.discard(info)
-            await self.db.delete_one(query)
-            return
-
-        if not (data := (await self.db.find_one(query, {"_id": 0, "cooldown_time": 0}))):
-            data = query | {"last_message_id": time_snowflake(utcnow())}
-
-        infos.discard(info)
-        info = ReminderInfo(**data, cooldown_time=amount)
-        self.info_channels.setdefault(channel_id, set())
-        self.info_channels[channel_id].add(info)
-
-        await self.db.replace_one(query, asdict(info), upsert=True)
-        return amount or 0
+        Parameters
+        ----------
+        ctx : commands.Context
+            The context of the command.
+        channel : Optional[discord.TextChannel | discord.Thread], optional
+            The channel for which the reminder is set. Defaults to the current channel.
+        """
+        query = {
+            "channel_id": channel.id,
+            "user_id": ctx.author.id,
+            "server_id": ctx.guild.id,
+        }
+        infos = self.info_channels.get(channel.id, set())
+        infos.discard(get(infos, **query))
+        await self.db.delete_one(query)
+        await ctx.reply("Reminder has been cleared.", ephemeral=True)
 
 
 async def setup(bot: Client):
