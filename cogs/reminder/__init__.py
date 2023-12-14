@@ -13,17 +13,17 @@
 # limitations under the License.
 
 
-import asyncio, re
-from contextlib import suppress
+import asyncio
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from textwrap import TextWrapper
 from typing import Literal, Optional
-from rapidfuzz import fuzz
 
 import discord
 from discord.ext import commands, tasks
 from discord.utils import format_dt, get, snowflake_time, time_snowflake, utcnow
+from rapidfuzz import fuzz
 
 from classes.client import Client
 
@@ -213,6 +213,28 @@ class Reminder(commands.Cog):
     async def cog_unload(self):
         self.check.cancel()
 
+    @staticmethod
+    def reminder_check(channel: discord.TextChannel | discord.Thread):
+        """Check if the reminder is valid for the channel
+
+        Parameters
+        ----------
+        channel : discord.TextChannel | discord.Thread
+            The channel to check
+        """
+
+        def inner_check(item: ReminderInfo) -> bool:
+            if item.last_message_id == channel.last_message_id:
+                return False
+
+            m = channel.guild.get_member(item.user_id)
+            if m and str(m.status) == "offline":
+                return False
+
+            return not item.notified_already and item.expired()
+
+        return inner_check
+
     @tasks.loop(seconds=5)
     async def check(self):
         for channel_id, infos in self.info_channels.items():
@@ -224,19 +246,13 @@ class Reminder(commands.Cog):
                     await self.db.delete_many({"channel_id": channel_id})
                     continue
 
-            def reminder_check(item: ReminderInfo) -> bool:
-                m = channel.guild.get_member(item.user_id)
-                if m and str(m.status) == "offline":
-                    return False
-
-                return not item.notified_already and item.expired()
-
-            for info in filter(reminder_check, infos):
+            for info in filter(self.reminder_check(channel), infos):
                 reference = channel.get_partial_message(info.last_message_id)
                 try:
                     last = await reference.fetch()
                     message = await last.reply(
-                        "Hello, you haven't replied in a while.\nPlease reply to this message, press ❌ to delete this message.",
+                        "Hello, you haven't replied in a while."
+                        "\nPlease reply to this message, press ❌ to delete this message.",
                         allowed_mentions=discord.AllowedMentions(replied_user=True),
                     )
                 except discord.NotFound:
@@ -250,7 +266,8 @@ class Reminder(commands.Cog):
                         )
                     )
                     message = await channel.send(
-                        f"Hello <@{info.user_id}>, you haven't replied in a while.\nPlease reply to this message, press ❌ to delete this message.",
+                        f"Hello <@{info.user_id}>, you haven't replied in a while."
+                        "\nPlease reply to this message, press ❌ to delete this message.",
                         allowed_mentions=discord.AllowedMentions(users=True),
                         view=view,
                     )
