@@ -24,6 +24,7 @@ import discord
 from discord.ext import commands, tasks
 from discord.utils import format_dt, get, snowflake_time, time_snowflake, utcnow
 from rapidfuzz import fuzz
+from itertools import chain
 
 from classes.client import Client
 
@@ -329,22 +330,21 @@ class Reminder(commands.Cog):
         channel : Optional[discord.TextChannel | discord.Thread], optional
             The channel for which the reminder is set. Defaults to the current channel.
         """
-        reminders = [
-            item
-            for items in self.info_channels.values()
-            for item in items
-            if item.server_id == ctx.guild.id
-            and item.user_id == ctx.author.id
-            and (channel is None or channel.id == item.channel_id)
-        ]
 
         await ctx.reply(
             embed=discord.Embed(
                 title=f"Reminders in {channel.name}" if channel else "Reminders",
                 description="\n".join(
                     f"* {item.jump_url} - {(nf := item.next_fire) and format_dt(nf, 'R')}"
-                    for item in sorted(reminders, key=lambda x: x.last_message_id or 0)
-                )[:4000]
+                    for item in sorted(
+                        chain(*self.info_channels.values()),
+                        key=lambda x: x.last_message_id or 0,
+                        reverse=True,
+                    )
+                    if item.server_id == ctx.guild.id
+                    and item.user_id == ctx.author.id
+                    and (channel is None or channel.id == item.channel_id)
+                )
                 or "No reminders.",
                 color=ctx.author.color,
             ),
