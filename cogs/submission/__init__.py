@@ -71,20 +71,12 @@ class Submission(commands.Cog):
             and (ctx.guild and ctx.guild.get_member(o.user_id))
         ]
 
-        if len(text) > 2 and (
-            result := (
-                process.extractOne(
-                    text,
-                    ocs,
-                    processor=lambda x: x.oc_name if isinstance(x, Character) else x,
-                    score_cutoff=90,
-                )
-                or process.extractOne(
-                    text,
-                    ocs,
-                    processor=lambda x: x.name if isinstance(x, Character) else x,
-                    score_cutoff=90,
-                )
+        if len(text) >= 2 and (
+            result := process.extractOne(
+                text,
+                ocs,
+                processor=lambda x: x.oc_name if isinstance(x, Character) else x,
+                score_cutoff=90,
             )
         ):
             return await ctx.invoke(self.read, oc=result[0])
