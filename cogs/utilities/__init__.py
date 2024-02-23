@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-from typing import Optional
-
 import d20
 import discord
 from discord.ext import commands

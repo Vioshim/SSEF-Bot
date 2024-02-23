@@ -13,15 +13,18 @@
 # limitations under the License.
 
 
+import io
 from itertools import groupby
 from typing import Optional
 
 import discord
+import matplotlib.pyplot as plt
+import numpy as np
 from discord import app_commands
 from discord.ext import commands
-from discord.utils import escape_mentions, find, remove_markdown
-from more_itertools import chunked
+from discord.utils import escape_mentions, remove_markdown
 from rapidfuzz import process
+from scipy.stats import norm
 
 from classes.character import Character, CharacterArg
 from classes.client import Client
@@ -64,44 +67,51 @@ class Submission(commands.Cog):
             o
             async for oc in self.db.find({"server": ctx.guild.id})
             if ctx.guild.get_member(oc["user_id"])
-            and (o := Character(**oc))
-            and o.oc_name.lower().startswith(text.lower())
+            and (o := Character(**oc)).oc_name.lower().startswith(text.lower())
+            and (ctx.guild and ctx.guild.get_member(o.user_id))
         ]
 
-        if len(ocs) == 1:
-            return await ctx.invoke(self.read, oc=ocs[0])
-
-        if len(text) > 1 and (oc := find(lambda x: x.oc_name.lower() == text.lower(), ocs)):
-            return await ctx.invoke(self.read, oc=oc)
+        if len(text) >= 2 and (
+            result := process.extractOne(
+                text,
+                ocs,
+                processor=lambda x: x.oc_name if isinstance(x, Character) else x,
+                score_cutoff=90,
+            )
+        ):
+            return await ctx.invoke(self.read, oc=result[0])
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
-        data = {
-            m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild and ctx.guild.get_member(k))
-        }
+        data = {m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild.get_member(k))}
 
         embeds = [
             discord.Embed(
-                description=text,
+                description="\n".join(f"* {oc.display_name}" for oc in v),
                 color=k.color,
             ).set_author(name=k.display_name, icon_url=k.display_avatar)
             for k, v in data.items()
-            for text in self.bot.e_wrapper.wrap("\n".join(f"* {oc.display_name}" for oc in v))
         ]
 
-        items = [*chunked(embeds, 10)]
-        if items and all(sum(len(x) for x in y) <= 6000 for y in items):
-            for embeds in items:
-                await ctx.reply(embeds=embeds, ephemeral=True)
-        else:
-            content = (
-                "\n".join(f"###{k.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v) for k, v in data.items())
-                or "No characters found."
+        if embeds and len(embeds) <= 10 and sum(len(x) for x in embeds) <= 6000:
+            return await ctx.reply(embeds=embeds, ephemeral=True)
+
+        for text in ctx.bot.wrapper.wrap(
+            "\n".join(
+                f"## {m.mention}\n" + "\n".join(f"* {oc.display_name}" for oc in v)
+                for k, v in groupby(ocs, lambda x: x.user_id)
+                if (m := ctx.guild and ctx.guild.get_member(k))
             )
-            for text in ctx.bot.wrapper.wrap(content.replace("###", "## ")):
-                await ctx.reply(content=text, ephemeral=True)
+            or "No characters found."
+        ):
+            await ctx.reply(content=text, ephemeral=True)
 
     @char.app_command.command()
-    async def create(self, itx: discord.Interaction[Client], sheet: Sheet):
+    async def create(
+        self,
+        itx: discord.Interaction[Client],
+        sheet: Sheet,
+        image: Optional[discord.Attachment] = None,
+    ):
         """Create a new character
 
         Parameters
@@ -110,6 +120,8 @@ class Submission(commands.Cog):
             Interaction of the command
         sheet : Sheet
             Sheet template to use
+        image : Optional[discord.Attachment]
+            Image of the character
         """
         if not itx.guild:
             return await itx.response.send_message(
@@ -117,8 +129,7 @@ class Submission(commands.Cog):
                 ephemeral=True,
             )
 
-        modal = CreateCharacterModal(timeout=None)
-        modal.desc.default = sheet.template
+        modal = CreateCharacterModal(sheet, image)
         await itx.response.send_modal(modal)
 
     @char.command(aliases=["new"], with_app_command=False)
@@ -163,8 +174,11 @@ class Submission(commands.Cog):
                 )
 
             if ctx.message and ctx.message.attachments:
-                description = f"{description.strip()}\n# Attachments\n"
-                description += "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+                description, *imgs = description.split("\n# Attachments\n")
+                imgs = "\n".join(x.strip() for x in imgs if x) + "\n".join(
+                    f"* {item.proxy_url}" for item in ctx.message.attachments
+                )
+                description = f"{description.strip()}\n# Attachments\n{imgs}"
 
             try:
                 oc = await Character.converter(ctx, name)
@@ -180,13 +194,13 @@ class Submission(commands.Cog):
                 )
                 await ctx.reply(f"Created {name!r}", ephemeral=True)
         elif ctx.interaction:
-            modal = CreateCharacterModal(timeout=None)
+            modal = CreateCharacterModal()
             modal.name.default = name
             if description:
                 modal.desc.default = description
             await ctx.interaction.response.send_modal(modal)
         else:
-            await ctx.reply("You must provide a name and description.", ephemeral=True)
+            await ctx.reply(Sheet.Normal.template, ephemeral=True)
 
     @commands.guild_only()
     @commands.command()
@@ -525,36 +539,73 @@ class Submission(commands.Cog):
         await ctx.reply(embed=embed, ephemeral=True)
 
     @char.command()
-    async def size(
-        self,
-        ctx: commands.Context[Client],
-        multiplier: float = 1.0,
-        *,
-        size: SizeArg = 1.0,
-    ):
-        """Calculate the size of a character
+    async def size(self, ctx: commands.Context[Client], *, mean: SizeArg = 1.0):
+        """Normal Distribution of a species's size
 
         Parameters
         ----------
         ctx : commands.Context
             Context of the command
-        multiplier : float
-            Multiplier of the size (default: 1.0)
-        size : Size
-            Size of the character (default: 1.0)
+        mean : Size
+            Average size of the species (default: 1.0)
         """
-        value = round(max(size * multiplier, 0.01), 2)
-        feet, inches = value // 0.3048, value / 0.3048 % 1 * 12
+        lower_limit = 0.75 * mean
+        upper_limit = 1.25 * mean
+        std_dev = 0.15 * mean
 
-        await ctx.reply(
-            content="\n".join(
-                [
-                    f"* {value:.2f} **m**",
-                    f"* {feet:.0f} **ft**, {inches:.2f} **in**",
-                ]
-            ),
-            ephemeral=True,
+        # Generate x values for the normal distribution curve
+        x = np.linspace(mean - 2.5 * std_dev, mean + 2.5 * std_dev, 1000)
+
+        # Calculate the normal distribution values using scipy's norm.pdf function
+        y = norm.pdf(x, mean, std_dev)
+
+        # Create a mask for the shaded area between lower and upper limits
+        mask = (x >= lower_limit) & (x <= upper_limit)
+
+        # Calculate the area under the curve for the shaded region
+        area = np.trapz(y[mask], x[mask])
+        percentage = area * 100
+
+        # Convert mean, lower limit, upper limit, and standard deviation to feet-inches
+        mean_ft, mean_inch = mean // 0.3048, mean / 0.3048 % 1 * 12
+        std_dev_ft, std_dev_inch = std_dev // 0.3048, std_dev / 0.3048 % 1 * 12
+
+        # Determine the number of ticks dynamically based on the requirement
+        ticks_values = np.linspace(lower_limit, upper_limit, 5)
+        feet_ticks = [f"{val:.02f} m\n{int(val // 0.3048)}' {int(val / 0.3048 % 1 * 12)}\"ft" for val in ticks_values]
+
+        # Create the plot with improved aesthetics
+        plt.figure(figsize=(10, 6))
+        plt.plot(x, y, color="darkblue", label="Normal Distribution", linewidth=2)
+        plt.fill_between(x, y, where=mask, alpha=0.5, color="skyblue", label=f"Shaded Area ({percentage:.2f}%)")
+        plt.title(
+            f"Normal Distribution (Mean: {mean_ft:.0f}' {mean_inch:.1f}\" / {mean:.2f}m | SD: {std_dev_ft:.0f}' {std_dev_inch:.1f}\" / {std_dev:.2f}m)",
+            fontsize=16,
         )
+        plt.legend(fontsize=12)
+        plt.grid(True, linestyle="--", alpha=0.7)
+        plt.xticks(ticks_values, feet_ticks, fontsize=12, fontweight="bold")
+        plt.tight_layout()
+
+        # Save the plot to a BytesIO object and send it to Discord
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        file = discord.File(buf, filename="plot.png")
+        await ctx.reply(file=file, ephemeral=True)
+
+    @commands.command(aliases=["size", "measure"])
+    async def height(self, ctx: commands.Context[Client], *, mean: SizeArg = 1.0):
+        """Get a character
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        mean : Size
+            Average size of the species (default: 1.0)
+        """
+        await ctx.invoke(self.size, mean=mean)
 
     @char.group(invoke_without_command=True, aliases=["update"])
     async def edit(
@@ -647,8 +698,11 @@ class Submission(commands.Cog):
             Description of the character
         """
         if ctx.message and ctx.message.attachments:
-            description = f"{description.strip()}\n# Attachments\n"
-            description += "\n".join(f"* {item.proxy_url}" for item in ctx.message.attachments)
+            description, *imgs = description.split("\n# Attachments\n")
+            imgs = "\n".join(x.strip() for x in imgs if x) + "\n".join(
+                f"* {item.proxy_url}" for item in ctx.message.attachments
+            )
+            description = f"{description.strip()}\n# Attachments\n{imgs}"
 
         if description == oc.description:
             return await ctx.reply("You can't set the same description.", ephemeral=True)
