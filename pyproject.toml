@@ -13,7 +13,7 @@ python = "^3.11.4"
     "voice",
 ] }
 jishaku = "^2.5.1"
-uvloop = { version = "^0.17.0", platform = "linux" }
+uvloop = { version = "^0.19.0", platform = "linux" }
 rapidfuzz = "^2.15.1"
 motor = { extras = ["srv"], version = "^3.2.0" }
 pymongo = { extras = ["srv"], version = "^4.2.0" }
