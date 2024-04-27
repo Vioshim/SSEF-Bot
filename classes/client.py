@@ -57,7 +57,7 @@ class Client(commands.Bot):
         self.mongodb = AsyncIOMotorClient(os.getenv("MONGO_URI"))
 
     def db(self, db: str) -> AsyncIOMotorCollection:
-        return self.mongodb.discord[db]
+        return self.mongodb.Eonlia[db]
 
     async def on_error(self, event_method: str, /, *args, **kwargs) -> None:
         self.log.exception(

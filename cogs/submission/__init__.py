@@ -15,7 +15,7 @@
 
 import io
 from itertools import groupby
-from typing import Optional
+from typing import Optional, Annotated
 
 import discord
 import matplotlib.pyplot as plt
@@ -37,10 +37,7 @@ class Submission(commands.Cog):
     def __init__(self, bot: Client):
         self.bot = bot
         self.db = bot.db("Characters")
-        self.itx_menu1 = app_commands.ContextMenu(
-            name="See list",
-            callback=self.list_menu,
-        )
+        self.itx_menu1 = app_commands.ContextMenu(name="See list", callback=self.list_menu)
 
     async def cog_load(self):
         self.bot.tree.add_command(self.itx_menu1)
@@ -63,22 +60,16 @@ class Submission(commands.Cog):
         ctx : commands.Context
             Context of the command
         """
-        ocs = [
-            o
-            async for oc in self.db.find({"server": ctx.guild.id})
-            if ctx.guild.get_member(oc["user_id"])
+        ocs = {
+            o: o.oc_name
+            async for oc in self.db.find({"server": ctx.guild and ctx.guild.id})
+            if ctx.guild
+            and ctx.guild.get_member(oc["user_id"])
             and (o := Character(**oc)).oc_name.lower().startswith(text.lower())
             and (ctx.guild and ctx.guild.get_member(o.user_id))
-        ]
+        }
 
-        if len(text) >= 2 and (
-            result := process.extractOne(
-                text,
-                ocs,
-                processor=lambda x: x.oc_name if isinstance(x, Character) else x,
-                score_cutoff=90,
-            )
-        ):
+        if len(text) >= 2 and (result := process.extractOne(text, ocs, score_cutoff=90)):
             return await ctx.invoke(self.read, oc=result[0])
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
@@ -136,9 +127,9 @@ class Submission(commands.Cog):
     async def add(
         self,
         ctx: commands.Context[Client],
-        name: remove_markdown = "",
+        name: Annotated[str, remove_markdown] = "",
         *,
-        description: escape_mentions = "",
+        description: Annotated[str, escape_mentions] = "",
     ):
         """Create a new character
 
@@ -207,9 +198,9 @@ class Submission(commands.Cog):
     async def addchar(
         self,
         ctx: commands.Context[Client],
-        name: remove_markdown = "",
+        name: Annotated[str, remove_markdown] = "",
         *,
-        description: escape_mentions = "",
+        description: Annotated[str, escape_mentions] = "",
     ):
         """Create a new character
 
@@ -225,12 +216,7 @@ class Submission(commands.Cog):
         await ctx.invoke(self.add, name=name, description=description)
 
     @char.command(aliases=["get", "view"])
-    async def read(
-        self,
-        ctx: commands.Context[Client],
-        *,
-        oc: CharacterArg,
-    ):
+    async def read(self, ctx: commands.Context[Client], *, oc: CharacterArg):
         """Get a character
 
         Parameters
@@ -247,12 +233,7 @@ class Submission(commands.Cog):
             await ctx.reply(content=text, ephemeral=True)
 
     @char.command(with_app_command=False)
-    async def query(
-        self,
-        ctx: commands.Context[Client],
-        *,
-        query: remove_markdown = "",
-    ):
+    async def query(self, ctx: commands.Context[Client], *, query: Annotated[str, remove_markdown] = ""):
         """Query characters
 
         Parameters
