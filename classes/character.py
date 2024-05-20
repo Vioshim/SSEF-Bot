@@ -93,50 +93,6 @@ class Character:
         lvl = f"{lvl:,}".replace(",", "\u2009")
         return remove_markdown(f"{lvl.zfill(3)}〙{name}《{mon.strip()}》")
 
-    @classmethod
-    async def converter(cls, ctx: commands.Context[Client] | Interaction[Client], argument: str):
-        """Convert a string to a Character
-
-        Parameters
-        ----------
-        ctx : commands.Context
-            Context of the command
-        argument : str
-            String to convert
-
-        Returns
-        -------
-        Character
-            Character object
-        """
-        if isinstance(ctx, Interaction):
-            db = ctx.client.db("Characters")
-            user = ctx.namespace.author or ctx.user
-        else:
-            db = ctx.bot.db("Characters")
-            user = ctx.author
-
-        key = {"user_id": user.id, "server": ctx.guild and ctx.guild.id}
-        data = {}
-
-        try:
-            data["_id"] = ObjectId(argument)
-        except Exception:
-            data["name"] = remove_markdown(argument)
-
-        if result := await db.find_one(key | data):
-            return cls(**result)
-
-        ocs = {o: o.name async for oc in db.find(key) if (o := cls(**oc))}
-
-        if not ocs:
-            raise commands.BadArgument("You have no characters")
-
-        if result := process.extractOne(argument, ocs, score_cutoff=95):
-            return result[0]
-
-        raise commands.BadArgument(f"Character {argument!r} not found")
-
 
 class CharacterTransformer(commands.Converter[Character], Transformer):
     async def transform(self, interaction: Interaction[Client], argument: str) -> Character:
@@ -160,7 +116,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
             raise commands.BadArgument("You have no characters")
 
         if result := process.extractOne(argument, ocs, score_cutoff=95):
-            return result[0]
+            return result[-1]
 
         raise commands.BadArgument(f"Character {argument!r} not found")
 
@@ -191,7 +147,33 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         Character
             Character object
         """
-        return await Character.converter(ctx, argument)
+        if isinstance(ctx, Interaction):
+            db = ctx.client.db("Characters")
+            user = ctx.namespace.author or ctx.user
+        else:
+            db = ctx.bot.db("Characters")
+            user = ctx.author
+
+        key = {"user_id": user.id, "server": ctx.guild and ctx.guild.id}
+        data = {}
+
+        try:
+            data["_id"] = ObjectId(argument)
+        except Exception:
+            data["name"] = remove_markdown(argument)
+
+        if result := await db.find_one(key | data):
+            return Character(**result)
+
+        ocs = {o: o.name async for oc in db.find(key) if (o := Character(**oc))}
+
+        if not ocs:
+            raise commands.BadArgument("You have no characters")
+
+        if result := process.extractOne(argument, ocs, score_cutoff=95):
+            return result[-1]
+
+        raise commands.BadArgument(f"Character {argument!r} not found")
 
 
 CharacterArg = Transform[Character, CharacterTransformer]
