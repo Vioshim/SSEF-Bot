@@ -159,17 +159,12 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
         if result := await db.find_one(key | data):
             return Character(**result)
 
-        ocs = [Character(**oc) async for oc in db.find(key)]
+        ocs = {o: o.name async for oc in db.find(key) if (o := Character(**oc))}
 
         if not ocs:
             raise commands.BadArgument("You have no characters")
 
-        if result := process.extractOne(
-            argument,
-            ocs,
-            processor=lambda x: x.name if isinstance(x, Character) else x,
-            score_cutoff=95,
-        ):
+        if result := process.extractOne(argument, ocs, score_cutoff=95):
             return result[0]
 
         raise commands.BadArgument(f"Character {argument!r} not found")
