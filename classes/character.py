@@ -165,16 +165,11 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
             raise commands.BadArgument("You have no characters")
 
         if result := process.extractOne(argument, ocs, score_cutoff=95):
-            return result[0]
+            return result[-1]
 
         raise commands.BadArgument(f"Character {argument!r} not found")
 
-    async def autocomplete(
-        self,
-        interaction: Interaction[Client],
-        value: str,
-        /,
-    ) -> list[Choice[str]]:
+    async def autocomplete(self, interaction: Interaction[Client], value: str) -> list[Choice[str]]:
         db = interaction.client.db("Characters")
 
         author = interaction.namespace.author or interaction.user
