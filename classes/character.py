@@ -165,7 +165,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
             raise commands.BadArgument("You have no characters")
 
         if result := process.extractOne(argument, ocs, score_cutoff=95):
-            return result[-1]
+            return result[0]
 
         raise commands.BadArgument(f"Character {argument!r} not found")
 
