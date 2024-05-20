@@ -60,16 +60,14 @@ class Submission(commands.Cog):
         ctx : commands.Context
             Context of the command
         """
-        ocs = {
-            o: o.oc_name
+        ocs = [
+            o
             async for oc in self.db.find({"server": ctx.guild and ctx.guild.id})
-            if ctx.guild
-            and ctx.guild.get_member(oc["user_id"])
+            if (ctx.guild and ctx.guild.get_member(oc["user_id"]))
             and (o := Character(**oc)).oc_name.lower().startswith(text.lower())
-            and (ctx.guild and ctx.guild.get_member(o.user_id))
-        }
+        ]
 
-        if len(text) >= 2 and (result := process.extractOne(text, ocs, score_cutoff=90)):
+        if len(text) >= 2 and (result := process.extractOne(text, {oc: oc.name for oc in ocs}, score_cutoff=90)):
             return await ctx.invoke(self.read, oc=result[0])
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
@@ -797,7 +795,6 @@ class Submission(commands.Cog):
         )
         embed.set_author(name=member.display_name, icon_url=member.display_avatar)
         await itx.response.send_message(embed=embed, ephemeral=True)
-
 
 async def setup(bot: Client):
     """Load the cog
