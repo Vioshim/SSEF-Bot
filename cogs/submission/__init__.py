@@ -60,15 +60,15 @@ class Submission(commands.Cog):
         ctx : commands.Context
             Context of the command
         """
-        ocs = [
-            o
+        ocs = {
+            o: o.name
             async for oc in self.db.find({"server": ctx.guild and ctx.guild.id})
             if (ctx.guild and ctx.guild.get_member(oc["user_id"]))
             and (o := Character(**oc)).oc_name.lower().startswith(text.lower())
-        ]
+        }
 
-        if len(text) >= 2 and (result := process.extractOne(text, {oc: oc.name for oc in ocs}, score_cutoff=90)):
-            return await ctx.invoke(self.read, oc=result[0])
+        if len(text) >= 2 and (result := process.extractOne(text, ocs, score_cutoff=90)):
+            return await ctx.invoke(self.read, oc=result[-1])
 
         ocs.sort(key=lambda x: (x.user_id, x.oc_name))
         data = {m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild.get_member(k))}
@@ -298,14 +298,9 @@ class Submission(commands.Cog):
         if not query:
             return await ctx.invoke(self.list, user=author)
 
-        ocs = [Character(**oc) async for oc in self.db.find({"user_id": author.id, "server": ctx.guild.id})]
-        if result := process.extractOne(
-            query,
-            ocs,
-            processor=lambda x: x.name if isinstance(x, Character) else x,
-            score_cutoff=80,
-        ):
-            return await ctx.invoke(self.read, oc=result[0])
+        ocs = {o: o.name async for oc in self.db.find({"user_id": author.id, "server": ctx.guild.id}) if (o := Character(**oc))}
+        if result := process.extractOne(query, ocs, score_cutoff=80):
+            return await ctx.invoke(self.read, oc=result[-1])
 
         await ctx.reply("No characters found.", ephemeral=True)
 
