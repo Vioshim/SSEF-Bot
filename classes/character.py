@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from bson.objectid import ObjectId
 from discord import Embed, Interaction
@@ -36,11 +36,11 @@ NM, SM, LM = (
 
 @dataclass(slots=True)
 class Character:
-    _id: ObjectId
-    user_id: int
-    name: str
-    description: str
-    server: int = 638802665467543572
+    _id: ObjectId = field(compare=True)
+    user_id: int = field(compare=False)
+    name: str = field(compare=False)
+    description: str = field(compare=False)
+    server: int = field(compare=False, default=638802665467543572)
 
     def __hash__(self) -> int:
         return hash(self._id)
@@ -48,9 +48,6 @@ class Character:
     def __contains__(self, item: str) -> bool:
         item = remove_markdown(item.lower())
         return item in self.name.lower() or item in self.description.lower()
-
-    def __eq__(self, other: Character) -> bool:
-        return self._id == other._id
 
     @property
     def created_at(self):
@@ -116,7 +113,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
             raise commands.BadArgument("You have no characters")
 
         if result := process.extractOne(argument, ocs, score_cutoff=95):
-            return result[-1]
+            return result[0]
 
         raise commands.BadArgument(f"Character {argument!r} not found")
 
@@ -171,7 +168,7 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
             raise commands.BadArgument("You have no characters")
 
         if result := process.extractOne(argument, ocs, score_cutoff=95):
-            return result[-1]
+            return result[0]
 
         raise commands.BadArgument(f"Character {argument!r} not found")
 
