@@ -70,7 +70,7 @@ class Submission(commands.Cog):
         if len(text) >= 2 and (result := process.extractOne(text, ocs, score_cutoff=90)):
             return await ctx.invoke(self.read, oc=result[-1])
 
-        ocs.sort(key=lambda x: (x.user_id, x.oc_name))
+        ocs = sorted(ocs, key=lambda x: (x.user_id, x.oc_name))
         data = {m: list(v) for k, v in groupby(ocs, lambda x: x.user_id) if (m := ctx.guild.get_member(k))}
 
         embeds = [
