@@ -129,13 +129,14 @@ class SizeTransformer(commands.Converter[float], Transformer):
             if inches:
                 inches = float(inches.replace('"', ""))
 
-            return feet + inches / 12
+            # To meters
+            return (feet * 12 + inches) * 0.0254
         
         if '"' in argument:
-            return float(argument.replace('"', ""))
+            return float(argument.replace('"', "")) * 0.0254
         
         if "'" in argument:
-            return float(argument) * 12
+            return float(argument) * 0.3048
         
         try:
             return float(argument)
