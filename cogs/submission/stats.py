@@ -139,7 +139,7 @@ class SizeTransformer(commands.Converter[float], Transformer):
             return float(argument) * 0.3048
         
         try:
-            return float(argument)
+            return float(argument.removesuffix("m").strip())
         except ValueError:
             raise commands.BadArgument(f"Invalid size string: {argument}") from None
 
