@@ -18,16 +18,12 @@ from __future__ import annotations
 from contextlib import suppress
 from enum import IntEnum, StrEnum
 
-import pint
 from discord import Interaction
 from discord.app_commands import Choice, Transform, Transformer
 from discord.ext import commands
-from quantulum3.parser import parse
 from rapidfuzz import process
 
 from classes.client import Client
-
-ureg = pint.UnitRegistry()
 
 
 class Stats(StrEnum):
@@ -120,14 +116,39 @@ class SizeTransformer(commands.Converter[float], Transformer):
             )
         ):
             return SIZES[item[0]]
+        
+        if "'" in argument or "ft" in argument:
+            feet, inches = 0, 0
+            if "'" in argument:
+                feet, inches = map(str.strip, argument.split("'"))
+            elif "ft" in argument:
+                feet, inches = map(str.strip, argument.split("ft"))
+            
+            feet = float(feet)
 
-        with suppress(ValueError):
-            return float(argument)
+            if inches:
+                inches = float(inches.replace('"', ""))
 
+            return feet + inches / 12
+        
+        if '"' in argument:
+            return float(argument.replace('"', ""))
+        
+        if "'" in argument:
+            return float(argument) * 12
+        
         try:
-            return sum(item.value * ureg(item.unit.name).to(ureg.meters).magnitude for item in parse(argument))
-        except (ValueError, pint.UndefinedUnitError, AttributeError) as e:
-            raise commands.BadArgument(f"Invalid measurement: {argument}") from e
+            return float(argument)
+        except ValueError:
+            raise commands.BadArgument(f"Invalid size string: {argument}") from None
+
+        
+        
+        raise commands.BadArgument(f"Invalid size string: {argument}")
+            
+
+
+        
 
     async def transform(self, _: Interaction[Client], argument: str) -> float:
         return await self.process(argument)
