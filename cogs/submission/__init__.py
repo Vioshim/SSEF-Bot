@@ -170,7 +170,7 @@ class Submission(commands.Cog):
                 description = f"{description.strip()}\n# Attachments\n{imgs}"
 
             try:
-                oc = await Character.converter(ctx, name)
+                oc = await Character.convert(ctx, name)
                 await ctx.reply(f"{oc.name!r} already exists.", ephemeral=True)
             except commands.BadArgument:
                 await self.db.insert_one(

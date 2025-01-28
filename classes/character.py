@@ -89,46 +89,7 @@ class Character:
         lvl = int(lvl[1]) if (lvl := LM.search(desc)) else 0
         lvl = f"{lvl:,}".replace(",", "\u2009")
         return remove_markdown(f"{lvl.zfill(3)}〙{name}《{mon.strip()}》")
-
-
-class CharacterTransformer(commands.Converter[Character], Transformer):
-    async def transform(self, interaction: Interaction[Client], argument: str) -> Character:
-        db = interaction.client.db("Characters")
-
-        author = interaction.namespace.author or interaction.user
-        key = {"user_id": author.id, "server": interaction.guild_id}
-        data = {}
-
-        try:
-            data["_id"] = ObjectId(argument)
-        except Exception:
-            data["name"] = remove_markdown(argument)
-
-        if result := await db.find_one(key | data):
-            return Character(**result)
-
-        ocs = {o: o.name async for oc in db.find(key) if (o := Character(**oc))}
-
-        if not ocs:
-            raise commands.BadArgument("You have no characters")
-
-        if result := process.extractOne(argument, ocs, score_cutoff=95):
-            return result[-1]
-
-        raise commands.BadArgument(f"Character {argument!r} not found")
-
-    async def autocomplete(self, interaction: Interaction[Client], value: str) -> list[Choice[str]]:
-        db = interaction.client.db("Characters")
-
-        author = interaction.namespace.author or interaction.user
-        key = {"user_id": author.id, "server": interaction.guild_id}
-
-        ocs = [Character(**oc) async for oc in db.find(key)]
-        ocs.sort(key=lambda x: x.oc_name)
-
-        items = [x for x in ocs if value.lower() in x.display_name.lower()] if value else ocs
-        return [Choice(name=item.display_name, value=str(item._id)) for item in items[:25]]
-
+    
     async def convert(self, ctx: commands.Context[Client], argument: str):
         """Convert a string to a Character
 
@@ -171,6 +132,47 @@ class CharacterTransformer(commands.Converter[Character], Transformer):
             return result[-1]
 
         raise commands.BadArgument(f"Character {argument!r} not found")
+
+class CharacterTransformer(commands.Converter[Character], Transformer):
+    async def transform(self, interaction: Interaction[Client], argument: str) -> Character:
+        db = interaction.client.db("Characters")
+
+        author = interaction.namespace.author or interaction.user
+        key = {"user_id": author.id, "server": interaction.guild_id}
+        data = {}
+
+        try:
+            data["_id"] = ObjectId(argument)
+        except Exception:
+            data["name"] = remove_markdown(argument)
+
+        if result := await db.find_one(key | data):
+            return Character(**result)
+
+        ocs = {o: o.name async for oc in db.find(key) if (o := Character(**oc))}
+
+        if not ocs:
+            raise commands.BadArgument("You have no characters")
+
+        if result := process.extractOne(argument, ocs, score_cutoff=95):
+            return result[-1]
+
+        raise commands.BadArgument(f"Character {argument!r} not found")
+
+    async def autocomplete(self, interaction: Interaction[Client], value: str) -> list[Choice[str]]:
+        db = interaction.client.db("Characters")
+
+        author = interaction.namespace.author or interaction.user
+        key = {"user_id": author.id, "server": interaction.guild_id}
+
+        ocs = [Character(**oc) async for oc in db.find(key)]
+        ocs.sort(key=lambda x: x.oc_name)
+
+        items = [x for x in ocs if value.lower() in x.display_name.lower()] if value else ocs
+        return [Choice(name=item.display_name, value=str(item._id)) for item in items[:25]]
+
+    async def convert(self, ctx: commands.Context[Client], argument: str):
+        return await Character.convert(ctx, argument)
 
 
 CharacterArg = Transform[Character, CharacterTransformer]
