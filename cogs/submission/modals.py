@@ -61,7 +61,7 @@ class CreateCharacterModal(Modal, title="Create Character"):
 
     async def on_submit(self, interaction: Interaction[Client]):
         with contextlib.suppress(commands.BadArgument):
-            if oc := await Character.converter(interaction, self.name.value):
+            if oc := await Character.convert(interaction, self.name.value):
                 await interaction.response.send_message(
                     f"Character {oc.name!r} already exists!",
                     ephemeral=True,
@@ -133,7 +133,7 @@ class UpdateCharacterModal(Modal, title="Update Character"):
 
     async def on_submit(self, interaction: Interaction[Client]):
         with contextlib.suppress(commands.BadArgument):
-            oc = await Character.converter(interaction, self.name.value)
+            oc = await Character.convert(interaction, self.name.value)
             if oc != self.character:
                 await interaction.response.send_message(
                     f"Character {oc.name!r} already exists!",
