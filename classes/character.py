@@ -90,7 +90,8 @@ class Character:
         lvl = f"{lvl:,}".replace(",", "\u2009")
         return remove_markdown(f"{lvl.zfill(3)}〙{name}《{mon.strip()}》")
     
-    async def convert(self, ctx: commands.Context[Client], argument: str):
+    @classmethod
+    async def convert(cls, ctx: commands.Context[Client], argument: str):
         """Convert a string to a Character
 
         Parameters
@@ -121,9 +122,9 @@ class Character:
             data["name"] = remove_markdown(argument)
 
         if result := await db.find_one(key | data):
-            return Character(**result)
+            return cls(**result)
 
-        ocs = {o: o.name async for oc in db.find(key) if (o := Character(**oc))}
+        ocs = {o: o.name async for oc in db.find(key) if (o := cls(**oc))}
 
         if not ocs:
             raise commands.BadArgument("You have no characters")
