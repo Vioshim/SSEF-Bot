@@ -21,10 +21,8 @@ BASE_TEMPLATES = {
 **Name:** 
 **Job:** (Optional)
 **Age:** (Optional)
-**Level:** (Optional)
 **Gender:** (Optional)
 **Species:**  (If fusion, provide each name and types, max two.)
-**Sexuality:** (Optional)
 **Magic:** (Optional. Recommended for adventurers. Soft cap at 2-3 magics.)
 **Equipment:** (Optional. Recommended for adventurers and those who fight often.)
 ## Information:
@@ -36,11 +34,8 @@ BASE_TEMPLATES = {
 
 **Name:** 
 **Job:** (Optional)
-**Age:** (Optional)
-**Level:** (Optional)
 **Gender:** (Optional)
 **Species:** (If fusion, provide each name and types, max two.)
-**Sexuality:** (Optional)
 **Magic:** (Optional. Soft cap at 2-3 magics.)
 **Equipment:** (Optional. Recommended for those who fight often.)
 **Embodied Virtue:** (Humility, Mercy, Kindness, Temperance, Diligence, Chastity, or Charity, can have more, it’s just what the angel’s personality embodies the most, can read the doc for more info on these. Optional)
@@ -52,11 +47,8 @@ BASE_TEMPLATES = {
 # Demon Character
 **Name:** 
 **Job:** (Optional)
-**Age:** (Optional)
-**Level:** (Optional)
 **Gender:** (Optional)
 **Species:** (If fusion, provide each name and types, max two.)
-**Sexuality:** (Optional)
 **Magic:** (Optional. Soft cap at 2-3 magics.)
 **Equipment:** (Optional. Recommended for those who fight often.)
 **Hierarchy Rank:** (Greater Demon, Lesser Demon, and Imp, check Heaven and Hell info for more information on these)
