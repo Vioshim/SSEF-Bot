@@ -727,6 +727,19 @@ class Submission(commands.Cog):
         """
         await ctx.invoke(self.list, user=user)
 
+    @commands.guild_only()
+    @commands.command()
+    async def purge(self, ctx: commands.Context[Client]):
+        """Purge all characters of a user
+
+        Parameters
+        ----------
+        ctx : commands.Context
+            Context of the command
+        """
+        await self.db.delete_many({"user_id": ctx.author.id, "server": ctx.guild and ctx.guild.id})
+        await ctx.reply(f"Purged all characters of {ctx.author}", ephemeral=True)
+
     @char.command()
     async def list(
         self,
