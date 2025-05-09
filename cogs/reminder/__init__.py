@@ -73,7 +73,7 @@ class ReminderInfo:
 
 DEFINITIONS = {
     "None": 0,
-    "30s": 1,
+    "1m": 1,
     "5m": 5,
     "15m": 15,
     "30m": 30,

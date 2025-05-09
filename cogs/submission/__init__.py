@@ -298,7 +298,11 @@ class Submission(commands.Cog):
         if not query:
             return await ctx.invoke(self.list, user=author)
 
-        ocs = {o: o.name async for oc in self.db.find({"user_id": author.id, "server": ctx.guild.id}) if (o := Character(**oc))}
+        ocs = {
+            o: o.name
+            async for oc in self.db.find({"user_id": author.id, "server": ctx.guild.id})
+            if (o := Character(**oc))
+        }
         if result := process.extractOne(query, ocs, score_cutoff=80):
             return await ctx.invoke(self.read, oc=result[-1])
 
@@ -803,6 +807,7 @@ class Submission(commands.Cog):
         )
         embed.set_author(name=member.display_name, icon_url=member.display_avatar)
         await itx.response.send_message(embed=embed, ephemeral=True)
+
 
 async def setup(bot: Client):
     """Load the cog

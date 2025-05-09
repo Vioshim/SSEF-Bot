@@ -116,14 +116,14 @@ class SizeTransformer(commands.Converter[float], Transformer):
             )
         ):
             return SIZES[item[0]]
-        
+
         if "'" in argument or "ft" in argument:
             feet, inches = 0, 0
             if "'" in argument:
                 feet, inches = map(str.strip, argument.split("'"))
             elif "ft" in argument:
                 feet, inches = map(str.strip, argument.split("ft"))
-            
+
             feet = float(feet)
 
             if inches:
@@ -131,25 +131,19 @@ class SizeTransformer(commands.Converter[float], Transformer):
 
             # To meters
             return (feet * 12 + inches) * 0.0254
-        
+
         if '"' in argument:
             return float(argument.replace('"', "")) * 0.0254
-        
+
         if "'" in argument:
             return float(argument) * 0.3048
-        
+
         try:
             return float(argument.removesuffix("m").strip())
         except ValueError:
             raise commands.BadArgument(f"Invalid size string: {argument}") from None
 
-        
-        
         raise commands.BadArgument(f"Invalid size string: {argument}")
-            
-
-
-        
 
     async def transform(self, _: Interaction[Client], argument: str) -> float:
         return await self.process(argument)
